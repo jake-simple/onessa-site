@@ -59,8 +59,8 @@ a:hover { text-decoration: underline; }
   grid-template-columns: 64px 1fr;
   align-items: baseline;
 }
-.face-list strong { font-family: var(--serif); font-size: 52px; font-weight: 600; }
-.face-list span { font-size: 28px; }
+.face-list strong { font-family: var(--serif); font-size: 48px; font-weight: 600; }
+.face-list span { font-size: 24px; }
 
 .app {
   border-top: 1px solid var(--hairline);
