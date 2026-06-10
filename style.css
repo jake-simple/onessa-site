@@ -47,7 +47,8 @@ a:hover { text-decoration: underline; }
 .face { border-top: 1px solid var(--hairline); }
 .face-list {
   list-style: none;
-  max-width: 640px;
+  width: fit-content;
+  max-width: 100%;
   margin: 0 auto;
   padding: 120px 24px;
   display: grid;
