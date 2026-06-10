@@ -44,22 +44,29 @@ a:hover { text-decoration: underline; }
   font-size: 18px;
 }
 
-.face { border-top: 1px solid var(--hairline); }
+.face {
+  border-top: 1px solid var(--hairline);
+  padding: 120px 24px;
+  text-align: center;
+}
 .face-list {
   list-style: none;
-  max-width: 640px;
-  margin: 0 auto;
-  padding: 120px 24px;
+  margin-top: 40px;
   display: grid;
-  gap: 36px;
+  gap: 26px;
+  font-family: var(--serif);
 }
 .face-list li {
-  display: grid;
-  grid-template-columns: 64px 1fr;
-  align-items: baseline;
+  font-size: clamp(20px, 2.6vw, 27px);
+  color: var(--muted);
+  letter-spacing: -0.01em;
 }
-.face-list strong { font-family: var(--serif); font-size: 40px; font-weight: 600; }
-.face-list span { font-size: 22px; }
+.face-list strong { font-weight: 600; color: var(--text); }
+.face-primary {
+  font-size: clamp(26px, 3.6vw, 38px);
+  color: var(--text);
+  margin-bottom: 10px;
+}
 
 .app {
   border-top: 1px solid var(--hairline);
@@ -112,7 +119,5 @@ a:hover { text-decoration: underline; }
 @media (max-width: 600px) {
   .hero { padding: 96px 20px 110px; }
   .app { padding: 100px 20px; }
-  .face-list { padding: 90px 20px; }
-  .face-list strong { font-size: 32px; }
-  .face-list span { font-size: 19px; }
+  .face { padding: 90px 20px; }
 }
