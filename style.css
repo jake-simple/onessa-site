@@ -62,23 +62,16 @@ a:hover { text-decoration: underline; }
 .face-list strong { font-family: var(--serif); font-size: 48px; font-weight: 600; }
 .face-list span { font-size: 24px; }
 
-main { padding: 0 24px; }
-
 .app {
-  max-width: 1120px;
-  margin: 48px auto;
-  border-radius: 28px;
-  padding: 110px 48px;
+  border-top: 1px solid var(--hairline);
+  padding: 140px 24px;
   text-align: center;
 }
-#spendy { background: #fdf8e9; }
-#peek   { background: #eef4fb; }
-#petals { background: #fbf1f4; }
 .app-kicker {
   font-size: 15px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.45);
+  color: var(--muted);
 }
 .app h2 {
   font-family: var(--serif);
@@ -91,7 +84,7 @@ main { padding: 0 24px; }
   max-width: 560px;
   margin: 24px auto 0;
   font-size: 19px;
-  color: rgba(0, 0, 0, 0.55);
+  color: var(--muted);
 }
 .app-links { margin-top: 28px; font-size: 17px; }
 .app-links .sep { color: var(--hairline); margin: 0 12px; }
@@ -103,11 +96,12 @@ main { padding: 0 24px; }
   height: auto;
   margin: 64px auto 0;
   border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12);
 }
 .shot-phone { max-width: min(340px, 80%); }
 
 .site-footer {
+  border-top: 1px solid var(--hairline);
   padding: 48px 24px;
   text-align: center;
   color: var(--muted);
@@ -118,8 +112,7 @@ main { padding: 0 24px; }
 
 @media (max-width: 600px) {
   .hero { padding: 96px 20px 110px; }
-  main { padding: 0 14px; }
-  .app { padding: 80px 22px; margin: 28px auto; }
+  .app { padding: 100px 20px; }
   .face-list { padding: 90px 20px; }
   .face-list strong { font-size: 40px; }
   .face-list span { font-size: 22px; }
