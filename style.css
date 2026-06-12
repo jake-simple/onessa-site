@@ -22,7 +22,7 @@ a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 .site-header { padding: 28px 24px; text-align: center; }
-.wordmark { font-family: var(--serif); font-size: 20px; letter-spacing: 0.04em; }
+.wordmark { height: 24px; width: auto; vertical-align: middle; }
 
 .hero { padding: 140px 24px 160px; text-align: center; }
 .hero h1 {

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 140" width="820" height="140">
+  <title>Onessa lockup — horizontal</title>
+  <path d="M91 21 A55 55 0 1 0 115 45" fill="none" stroke="#1A1A1A" stroke-width="11" stroke-linecap="round"/>
+  <g transform="translate(160 20)" fill="none" stroke="#1A1A1A" stroke-width="16" stroke-linecap="round">
+    <circle cx="50" cy="50" r="42"/>
+    <path d="M132 8 L132 92"/>
+    <path d="M132 50 A42 42 0 0 1 216 50 L216 92"/>
+    <path d="M256 50 L340 50"/>
+    <path d="M340 50 A42 42 0 1 0 325 82.2"/>
+    <path d="M417.1 15.5 A21 21 0 1 0 401 50 A21 21 0 1 1 384.9 84.5"/>
+    <path d="M499.1 15.5 A21 21 0 1 0 483 50 A21 21 0 1 1 466.9 84.5"/>
+    <circle cx="586" cy="50" r="42"/>
+    <path d="M628 8 L628 92"/>
+  </g>
+</svg>
