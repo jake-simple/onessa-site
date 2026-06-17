@@ -21,8 +21,26 @@ body {
 a { color: var(--link); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-.site-header { padding: 28px 24px; text-align: center; }
+.site-header { padding: 28px 24px; text-align: center; position: relative; }
 .wordmark { height: 24px; width: auto; vertical-align: middle; }
+
+.lang-toggle {
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  transition: border-color 0.15s, color 0.15s;
+}
+.lang-toggle:hover { border-color: var(--text); color: var(--text); }
 
 .hero { padding: 140px 24px 160px; text-align: center; }
 .hero h1 {
