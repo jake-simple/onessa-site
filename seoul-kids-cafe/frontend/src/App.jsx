@@ -179,7 +179,11 @@ function FacilityResults({entries}) {
       {entries.map(({result, sessions}) => (
         <ListItem
           key={result.id}
-          label={result.name}
+          label={(
+            <Text type="large" weight="semibold" color="primary">
+              {result.name}
+            </Text>
+          )}
           description={
             <VStack gap={3}>
               <Text type="supporting" color="secondary">
