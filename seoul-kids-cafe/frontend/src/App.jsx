@@ -27,6 +27,27 @@ const MAX_PARALLEL_CHUNKS = 2;
 const MIN_SEATS = 1;
 const MAX_SEATS = 10;
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
+const RESULT_ACTION_LINK_STYLE = {
+  alignItems: "center",
+  backgroundColor: "var(--color-background-surface)",
+  borderColor: "var(--color-border-emphasized)",
+  borderRadius: "var(--radius-element)",
+  borderStyle: "solid",
+  borderWidth: "var(--border-width)",
+  boxSizing: "border-box",
+  color: "var(--color-text-primary)",
+  justifyContent: "center",
+  minHeight: "var(--spacing-11)",
+  paddingInline: "var(--spacing-3)",
+  whiteSpace: "nowrap",
+  width: "100%"
+};
+const RESULT_PRIMARY_ACTION_LINK_STYLE = {
+  ...RESULT_ACTION_LINK_STYLE,
+  backgroundColor: "var(--color-accent)",
+  borderColor: "var(--color-accent)",
+  color: "var(--color-on-accent)"
+};
 const ASTRYX_KOREAN_OVERRIDES = {
   "ko-KR": {
     "@astryx.appShell.skipToContent": "본문으로 건너뛰기",
@@ -138,7 +159,7 @@ function FacilityResults({entries}) {
           key={result.id}
           label={result.name}
           description={
-            <VStack gap={2}>
+            <VStack gap={3}>
               <Text type="supporting" color="secondary">
                 {result.district} · {sessions.length}개 회차
               </Text>
@@ -157,27 +178,29 @@ function FacilityResults({entries}) {
                   </HStack>
                 ))}
               </VStack>
+              <Grid columns={{minWidth: 140, max: 2, repeat: "fit"}} gap={2} width="100%" maxWidth={360}>
+                <Link
+                  href={officialFacilityGuideUrl(result.id)}
+                  isExternalLink
+                  isStandalone
+                  newTabLabel="(새 창에서 열림)"
+                  color="inherit"
+                  style={RESULT_ACTION_LINK_STYLE}
+                >
+                  이용 안내
+                </Link>
+                <Link
+                  href={result.officialReservationUrl}
+                  isExternalLink
+                  isStandalone
+                  newTabLabel="(새 창에서 열림)"
+                  color="inherit"
+                  style={RESULT_PRIMARY_ACTION_LINK_STYLE}
+                >
+                  공식 사이트 예약
+                </Link>
+              </Grid>
             </VStack>
-          }
-          endContent={
-            <HStack gap={3} wrap="wrap">
-              <Link
-                href={officialFacilityGuideUrl(result.id)}
-                isExternalLink
-                isStandalone
-                newTabLabel="(새 창에서 열림)"
-              >
-                이용 안내
-              </Link>
-              <Link
-                href={result.officialReservationUrl}
-                isExternalLink
-                isStandalone
-                newTabLabel="(새 창에서 열림)"
-              >
-                공식 사이트 예약
-              </Link>
-            </HStack>
           }
         />
       ))}
@@ -333,7 +356,7 @@ export default function App() {
         <AppShell height="auto" variant="wash" contentPadding={0}>
           <HStack width="100%" hAlign="center">
             <VStack width="100%" maxWidth="60rem" gap={0}>
-              <Section variant="muted" padding={8} dividers={["bottom"]}>
+              <Section variant="muted" padding={6} paddingBlock={8} dividers={["bottom"]}>
                 <VStack as="header" gap={4}>
                   <Link href="https://onessa.app" isStandalone>onessa</Link>
                   <VStack gap={2}>
@@ -348,7 +371,7 @@ export default function App() {
                 </VStack>
               </Section>
 
-              <Section variant="section" padding={8} dividers={["bottom"]}>
+              <Section variant="section" padding={6} dividers={["bottom"]}>
                 <VStack gap={6}>
                   <VStack gap={1}>
                     <Heading level={2}>언제, 몇 자리 필요한가요?</Heading>
@@ -425,7 +448,7 @@ export default function App() {
               </Section>
 
               {hasSearched && activeCriteria && (
-                <Section variant="section" padding={8} dividers={["bottom"]}>
+                <Section variant="section" padding={6} dividers={["bottom"]}>
                   <VStack gap={5}>
                     <HStack gap={4} hAlign="between" vAlign="start" wrap="wrap">
                       <VStack gap={1}>
@@ -474,7 +497,7 @@ export default function App() {
                 </Section>
               )}
 
-              <Section variant="transparent" padding={8} dividers={["bottom"]}>
+              <Section variant="transparent" padding={6} dividers={["bottom"]}>
                 <List
                   listStyle="decimal"
                   density="spacious"
@@ -487,7 +510,7 @@ export default function App() {
                 </List>
               </Section>
 
-              <Section variant="muted" padding={8}>
+              <Section variant="muted" padding={6}>
                 <VStack as="footer" gap={2}>
                   <Text type="label">꼭 확인해 주세요.</Text>
                   <Text type="supporting">
