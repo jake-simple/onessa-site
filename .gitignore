@@ -1,1 +1,4 @@
 .gstack/
+seoul-kids-cafe/worker/node_modules/
+seoul-kids-cafe/worker/.wrangler/
+seoul-kids-cafe/worker/.dev.vars
