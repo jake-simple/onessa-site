@@ -26,6 +26,8 @@ const CHUNK_SIZE = 24;
 const MAX_PARALLEL_CHUNKS = 2;
 const MIN_SEATS = 1;
 const MAX_SEATS = 10;
+const SEATS_STORAGE_KEY = "kidsCafeSeatsV2";
+const DISTRICTS_STORAGE_KEY = "kidsCafeDistricts";
 const KOREAN_WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const RESULT_ACTION_LINK_STYLE = {
@@ -115,12 +117,22 @@ function formatFetchedAt(isoString) {
 
 function readSavedSeats() {
   try {
-    const saved = Number(localStorage.getItem("kidsCafeSeats"));
+    const saved = Number(localStorage.getItem(SEATS_STORAGE_KEY));
     if (saved >= MIN_SEATS && saved <= MAX_SEATS) return saved;
   } catch {
     // 브라우저 저장소가 차단돼도 현재 검색은 그대로 동작한다.
   }
-  return 3;
+  return MIN_SEATS;
+}
+
+function readSavedDistricts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(DISTRICTS_STORAGE_KEY) || "[]");
+    if (Array.isArray(saved)) return saved.filter((district) => typeof district === "string");
+  } catch {
+    // 브라우저 저장소가 차단돼도 현재 검색은 그대로 동작한다.
+  }
+  return [];
 }
 
 async function fetchJson(url, signal) {
@@ -224,7 +236,7 @@ export default function App() {
   const [seats, setSeats] = useState(readSavedSeats);
   const [facilities, setFacilities] = useState([]);
   const [districts, setDistricts] = useState([]);
-  const [selectedDistricts, setSelectedDistricts] = useState([]);
+  const [selectedDistricts, setSelectedDistricts] = useState(readSavedDistricts);
   const [facilityState, setFacilityState] = useState("loading");
   const [facilityError, setFacilityError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -239,11 +251,19 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem("kidsCafeSeats", String(seats));
+      localStorage.setItem(SEATS_STORAGE_KEY, String(seats));
     } catch {
       // 저장 실패는 현재 검색에 영향을 주지 않는다.
     }
   }, [seats]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DISTRICTS_STORAGE_KEY, JSON.stringify(selectedDistricts));
+    } catch {
+      // 저장 실패는 현재 검색에 영향을 주지 않는다.
+    }
+  }, [selectedDistricts]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -253,6 +273,9 @@ export default function App() {
       const payload = await fetchJson(`${API_BASE}/api/facilities`, controller.signal);
       setFacilities(payload.facilities || []);
       setDistricts(payload.districts || []);
+      setSelectedDistricts((current) => current.filter((district) => (
+        (payload.districts || []).includes(district)
+      )));
       setFacilityState("ready");
     }
 
