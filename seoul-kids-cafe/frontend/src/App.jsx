@@ -443,22 +443,26 @@ export default function App() {
                           width="100%"
                           isIntegerOnly
                         />
-                        <MultiSelector
-                          label="지역"
-                          options={districts}
-                          value={selectedDistricts}
-                          onChange={setSelectedDistricts}
-                          placeholder="전체 서울"
-                          description={districtDescription}
-                          triggerDisplay="badges"
-                          maxBadges={2}
-                          hasSearch
-                          searchPlaceholder="지역 검색…"
-                          width="100%"
-                          isLoading={facilityState === "loading"}
-                          isDisabled={facilityState !== "ready"}
-                          disabledMessage="시설 목록을 불러온 뒤 선택할 수 있습니다."
-                        />
+                        <VStack gap={1}>
+                          <MultiSelector
+                            label="지역"
+                            options={districts}
+                            value={selectedDistricts}
+                            onChange={setSelectedDistricts}
+                            placeholder="전체 서울"
+                            triggerDisplay="badges"
+                            maxBadges={2}
+                            hasSearch
+                            searchPlaceholder="지역 검색…"
+                            width="100%"
+                            isLoading={facilityState === "loading"}
+                            isDisabled={facilityState !== "ready"}
+                            disabledMessage="시설 목록을 불러온 뒤 선택할 수 있습니다."
+                          />
+                          <Text type="supporting" color="secondary">
+                            {districtDescription}
+                          </Text>
+                        </VStack>
                       </Grid>
                       <Button
                         label="빈자리 찾기"
