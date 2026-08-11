@@ -1,0 +1,55 @@
+.kids-cafe-hero {
+  isolation: isolate;
+  overflow: hidden;
+  position: relative;
+}
+
+.kids-cafe-hero__content {
+  position: relative;
+  z-index: 1;
+}
+
+.kids-cafe-hero__eyebrow {
+  align-self: flex-start;
+  background-color: var(--color-background-yellow);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-1) var(--spacing-3);
+}
+
+.kids-cafe-hero__shape {
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.kids-cafe-hero__shape--sun {
+  aspect-ratio: 1;
+  background-color: var(--color-background-yellow);
+  inset-block-start: calc(-1 * var(--spacing-12));
+  inset-inline-end: calc(-1 * var(--spacing-10));
+  transform: rotate(-12deg);
+  width: min(44vw, calc(var(--spacing-12) * 5));
+}
+
+.kids-cafe-hero__shape--play {
+  background-color: var(--color-background-orange);
+  height: min(44vw, calc(var(--spacing-12) * 4));
+  inset-block-end: calc(-1 * var(--spacing-12));
+  inset-inline-end: calc(var(--spacing-12) * 2);
+  transform: rotate(28deg);
+  width: min(34vw, calc(var(--spacing-12) * 3));
+}
+
+@media (max-width: 480px) {
+  .kids-cafe-hero__shape--sun {
+    inset-block-start: var(--spacing-8);
+    inset-inline-end: calc(-1 * var(--spacing-12));
+  }
+
+  .kids-cafe-hero__shape--play {
+    inset-block-end: calc(-1 * var(--spacing-12));
+    inset-inline-end: var(--spacing-4);
+    opacity: 0.7;
+  }
+}

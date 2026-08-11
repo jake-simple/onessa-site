@@ -26,6 +26,7 @@ const CHUNK_SIZE = 24;
 const MAX_PARALLEL_CHUNKS = 2;
 const MIN_SEATS = 1;
 const MAX_SEATS = 10;
+const KOREAN_WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const RESULT_ACTION_LINK_STYLE = {
   alignItems: "center",
@@ -65,6 +66,15 @@ const ASTRYX_KOREAN_OVERRIDES = {
     "@astryx.typeahead.emptySearchResults": "검색 결과가 없습니다"
   }
 };
+
+function localizeCalendarWeekdays() {
+  document.querySelectorAll(".astryx-calendar").forEach((calendar) => {
+    calendar.querySelectorAll('[role="columnheader"]').forEach((header, index) => {
+      const label = KOREAN_WEEKDAY_LABELS[index];
+      if (label && header.textContent !== label) header.textContent = label;
+    });
+  });
+}
 
 function seoulDateString(date) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -257,6 +267,13 @@ export default function App() {
 
   useEffect(() => () => activeController.current?.abort(), []);
 
+  useEffect(() => {
+    localizeCalendarWeekdays();
+    const observer = new MutationObserver(localizeCalendarWeekdays);
+    observer.observe(document.body, {childList: true, subtree: true});
+    return () => observer.disconnect();
+  }, []);
+
   const requiredSeats = activeCriteria?.seats ?? seats;
   const entries = useMemo(() => {
     return results.map((result) => ({
@@ -356,13 +373,29 @@ export default function App() {
         <AppShell height="auto" variant="wash" contentPadding={0}>
           <HStack width="100%" hAlign="center">
             <VStack width="100%" maxWidth="60rem" gap={0}>
-              <Section variant="muted" padding={6} paddingBlock={8} dividers={["bottom"]}>
-                <VStack as="header" gap={4}>
+              <Section
+                variant="muted"
+                padding={6}
+                paddingBlock={8}
+                dividers={["bottom"]}
+                className="kids-cafe-hero"
+              >
+                <HStack
+                  aria-hidden="true"
+                  className="kids-cafe-hero__shape kids-cafe-hero__shape--sun"
+                />
+                <HStack
+                  aria-hidden="true"
+                  className="kids-cafe-hero__shape kids-cafe-hero__shape--play"
+                />
+                <VStack as="header" gap={4} maxWidth="42rem" className="kids-cafe-hero__content">
                   <Link href="https://onessa.app" isStandalone>onessa</Link>
                   <VStack gap={2}>
-                    <Text type="label" color="accent">서울형 키즈카페</Text>
+                    <Text type="label" color="accent" className="kids-cafe-hero__eyebrow">
+                      서울형 키즈카페
+                    </Text>
                     <Heading level={1} type="display-1" textWrap="balance">
-                      오늘, 아이들과 갈 수 있는 곳만.
+                      오늘, 아이들과<br />갈 수 있는 곳만.
                     </Heading>
                     <Text type="large" color="secondary">
                       시설마다 들어가 보지 말고, 필요한 자리만 한 번에 찾아보세요.
