@@ -26,6 +26,7 @@ const CHUNK_SIZE = 24;
 const MAX_PARALLEL_CHUNKS = 2;
 const MIN_SEATS = 1;
 const MAX_SEATS = 10;
+const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const ASTRYX_KOREAN_OVERRIDES = {
   "ko-KR": {
     "@astryx.appShell.skipToContent": "본문으로 건너뛰기",
@@ -113,6 +114,10 @@ function chunksOf(items, size) {
   return chunks;
 }
 
+function officialFacilityGuideUrl(facilityId) {
+  return `${OFFICIAL_FACILITY_GUIDE_BASE}?q_fcltyId=${encodeURIComponent(facilityId)}&q_fcltyStle=`;
+}
+
 function sessionSortValue(session) {
   return session.startsAt || "9999";
 }
@@ -155,14 +160,24 @@ function FacilityResults({entries}) {
             </VStack>
           }
           endContent={
-            <Link
-              href={result.officialReservationUrl}
-              isExternalLink
-              isStandalone
-              newTabLabel="(새 창에서 열림)"
-            >
-              공식 사이트 예약
-            </Link>
+            <HStack gap={3} wrap="wrap">
+              <Link
+                href={officialFacilityGuideUrl(result.id)}
+                isExternalLink
+                isStandalone
+                newTabLabel="(새 창에서 열림)"
+              >
+                이용 안내
+              </Link>
+              <Link
+                href={result.officialReservationUrl}
+                isExternalLink
+                isStandalone
+                newTabLabel="(새 창에서 열림)"
+              >
+                공식 사이트 예약
+              </Link>
+            </HStack>
           }
         />
       ))}
