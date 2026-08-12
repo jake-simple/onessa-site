@@ -561,11 +561,6 @@ export default function App() {
                             isDisabled={facilityState !== "ready"}
                             disabledMessage="시설 목록을 불러온 뒤 선택할 수 있습니다."
                           />
-                          {selectedDistricts.length > 0 && (
-                            <Text type="supporting" color="secondary">
-                              {selectedDistricts.length}개 지역을 선택했습니다.
-                            </Text>
-                          )}
                         </VStack>
                       </Grid>
                       <Button

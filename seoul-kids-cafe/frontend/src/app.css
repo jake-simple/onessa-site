@@ -43,6 +43,8 @@
 
 .kids-cafe-result-item {
   align-items: flex-start;
+  gap: var(--spacing-4);
+  padding-inline: 0;
 }
 
 .kids-cafe-result-item__thumbnail {
