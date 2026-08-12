@@ -629,7 +629,6 @@ export default function App() {
                 variant="section"
                 padding={6}
                 dividers={["bottom"]}
-                className="kids-cafe-search-panel"
               >
                 <VStack gap={6}>
                   <VStack gap={1}>

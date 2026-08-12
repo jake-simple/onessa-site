@@ -41,11 +41,6 @@
   width: min(34vw, calc(var(--spacing-12) * 3));
 }
 
-.kids-cafe-search-panel {
-  border-radius: var(--spacing-6);
-  overflow: hidden;
-}
-
 .kids-cafe-result-item {
   align-items: flex-start;
   gap: var(--spacing-4);
