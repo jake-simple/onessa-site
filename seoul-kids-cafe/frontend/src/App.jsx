@@ -284,7 +284,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                   icon={<FavoriteStarOutlineIcon />}
                   pressedIcon={<FavoriteStarSolidIcon />}
                   isIconOnly
-                  size="sm"
+                  size="md"
                   isPressed={favoriteIdSet.has(result.id)}
                   onPressedChange={(isPressed) => onFavoriteChange(result.id, isPressed)}
                 />
@@ -485,13 +485,18 @@ export default function App() {
     const controller = new AbortController();
     activeController.current = controller;
     const sequence = ++searchSequence.current;
-    const facilitiesInDistricts = selectedDistricts.length === 0
+    const facilitiesInDistricts = favoritesOnly || selectedDistricts.length === 0
       ? facilities
       : facilities.filter((facility) => selectedDistricts.includes(facility.district));
     const selectedFacilities = favoritesOnly
       ? facilitiesInDistricts.filter((facility) => favoriteIdSet.has(facility.id))
       : facilitiesInDistricts;
-    const criteria = {date, seats, districts: [...selectedDistricts], favoritesOnly};
+    const criteria = {
+      date,
+      seats,
+      districts: favoritesOnly ? [] : [...selectedDistricts],
+      favoritesOnly
+    };
     const chunks = chunksOf(selectedFacilities, CHUNK_SIZE);
     let nextChunkIndex = 0;
     let checkedCount = 0;
@@ -544,10 +549,11 @@ export default function App() {
     }
   }
 
-  const conditionDistricts = activeCriteria?.districts.length
+  const conditionDistricts = activeCriteria?.favoritesOnly
+    ? "즐겨찾기 전체"
+    : activeCriteria?.districts.length
     ? activeCriteria.districts.join(", ")
     : "전체 서울";
-  const conditionFavorites = activeCriteria?.favoritesOnly ? " · 즐겨찾기만" : "";
 
   function updateFavorite(facilityId, isFavorite) {
     setFavoriteIds((current) => (
@@ -641,17 +647,19 @@ export default function App() {
                           <MultiSelector
                             label="지역"
                             options={districts}
-                            value={selectedDistricts}
+                            value={favoritesOnly ? [] : selectedDistricts}
                             onChange={setSelectedDistricts}
-                            placeholder="전체 서울"
+                            placeholder={favoritesOnly ? "즐겨찾기 전체" : "전체 서울"}
                             triggerDisplay="badges"
                             maxBadges={2}
                             hasSearch
                             searchPlaceholder="지역 검색…"
                             width="100%"
                             isLoading={facilityState === "loading"}
-                            isDisabled={facilityState !== "ready"}
-                            disabledMessage="시설 목록을 불러온 뒤 선택할 수 있습니다."
+                            isDisabled={facilityState !== "ready" || favoritesOnly}
+                            disabledMessage={favoritesOnly
+                              ? "즐겨찾기만 확인할 때는 지역 필터를 사용하지 않습니다."
+                              : "시설 목록을 불러온 뒤 선택할 수 있습니다."}
                           />
                         </VStack>
                       </Grid>
@@ -691,7 +699,7 @@ export default function App() {
                         <Text type="label" color="accent">검색 결과</Text>
                         <Heading level={2}>{entries.length}곳 · {totalSessions}개 회차</Heading>
                         <Text type="supporting">
-                          {formatSearchDate(activeCriteria.date)} · {activeCriteria.seats}자리 이상 · {conditionDistricts}{conditionFavorites}
+                          {formatSearchDate(activeCriteria.date)} · {activeCriteria.seats}자리 이상 · {conditionDistricts}
                         </Text>
                       </VStack>
                       {oldestFetchedAt && (

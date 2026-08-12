@@ -60,11 +60,11 @@
 
 .kids-cafe-favorite-icon {
   fill: none;
-  height: var(--spacing-5);
+  height: var(--spacing-6);
   stroke: currentColor;
   stroke-linejoin: round;
   stroke-width: 1.75;
-  width: var(--spacing-5);
+  width: var(--spacing-6);
 }
 
 .kids-cafe-favorite-icon--active {
