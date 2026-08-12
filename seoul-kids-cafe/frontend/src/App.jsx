@@ -51,13 +51,6 @@ const RESULT_ACTION_LINK_STYLE = {
   whiteSpace: "nowrap",
   width: "100%"
 };
-const RESULT_ICON_ACTION_LINK_STYLE = {
-  ...RESULT_ACTION_LINK_STYLE,
-  height: "var(--size-element-md)",
-  justifySelf: "start",
-  paddingInline: 0,
-  width: "var(--size-element-md)"
-};
 const ASTRYX_KOREAN_OVERRIDES = {
   "ko-KR": {
     "@astryx.appShell.skipToContent": "본문으로 건너뛰기",
@@ -304,9 +297,17 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       </Text>
                     )}
                     {result.address && (
-                      <Text type="supporting" color="secondary">
-                        주소 · {result.address}
-                      </Text>
+                      <Link
+                        href={naverMapSearchUrl(result)}
+                        target="_blank"
+                        tooltip="네이버 지도에서 보기"
+                        color="inherit"
+                        hasUnderline
+                      >
+                        <Text type="supporting" color="secondary">
+                          주소 · {result.address}
+                        </Text>
+                      </Link>
                     )}
                     <Text type="supporting" color="secondary">
                       {result.district} · {sessions.length}개 회차
@@ -327,7 +328,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       </HStack>
                     ))}
                   </VStack>
-                  <Grid columns={{minWidth: 112, max: 3, repeat: "fit"}} gap={2} width="100%" maxWidth={440}>
+                  <Grid columns={{minWidth: 112, max: 2, repeat: "fit"}} gap={2} width="100%" maxWidth={300}>
                     <Link
                       href={officialFacilityGuideUrl(result.id)}
                       target="_blank"
@@ -347,22 +348,6 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       style={RESULT_ACTION_LINK_STYLE}
                     >
                       공식 사이트 예약
-                    </Link>
-                    <Link
-                      href={naverMapSearchUrl(result)}
-                      target="_blank"
-                      isStandalone
-                      label="네이버 지도에서 보기 (새 창에서 열림)"
-                      tooltip="네이버 지도에서 보기"
-                      color="inherit"
-                      style={RESULT_ICON_ACTION_LINK_STYLE}
-                    >
-                      <img
-                        src="/seoul-kids-cafe/naver-map-icon-v1.png"
-                        alt=""
-                        aria-hidden="true"
-                        className="kids-cafe-naver-map-icon"
-                      />
                     </Link>
                   </Grid>
                 </VStack>

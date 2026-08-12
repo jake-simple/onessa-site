@@ -78,13 +78,6 @@
   border-color: transparent;
 }
 
-.kids-cafe-naver-map-icon {
-  display: block;
-  height: var(--spacing-6);
-  object-fit: contain;
-  width: var(--spacing-6);
-}
-
 .kids-cafe-results-load-sentinel {
   min-height: var(--size-element-lg);
 }
