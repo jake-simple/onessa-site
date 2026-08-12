@@ -35,6 +35,7 @@ const DISTRICTS_STORAGE_KEY = "kidsCafeDistricts";
 const FAVORITES_STORAGE_KEY = "kidsCafeFavoritesV1";
 const KOREAN_WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
+const NAVER_MAP_SEARCH_BASE = "https://map.naver.com/p/search";
 const RESULT_ACTION_LINK_STYLE = {
   alignItems: "center",
   backgroundColor: "var(--color-background-surface)",
@@ -174,6 +175,10 @@ function chunksOf(items, size) {
 
 function officialFacilityGuideUrl(facilityId) {
   return `${OFFICIAL_FACILITY_GUIDE_BASE}?q_fcltyId=${encodeURIComponent(facilityId)}&q_fcltyStle=`;
+}
+
+function naverMapSearchUrl(facility) {
+  return `${NAVER_MAP_SEARCH_BASE}/${encodeURIComponent(`서울형 키즈카페 ${facility.name}`)}`;
 }
 
 function sessionSortValue(session) {
@@ -321,7 +326,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       </HStack>
                     ))}
                   </VStack>
-                  <Grid columns={{minWidth: 112, max: 2, repeat: "fit"}} gap={2} width="100%" maxWidth={300}>
+                  <Grid columns={{minWidth: 112, max: 3, repeat: "fit"}} gap={2} width="100%" maxWidth={440}>
                     <Link
                       href={officialFacilityGuideUrl(result.id)}
                       target="_blank"
@@ -341,6 +346,16 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       style={RESULT_PRIMARY_ACTION_LINK_STYLE}
                     >
                       공식 사이트 예약
+                    </Link>
+                    <Link
+                      href={naverMapSearchUrl(result)}
+                      target="_blank"
+                      isStandalone
+                      aria-label="네이버 지도에서 보기 (새 창에서 열림)"
+                      color="inherit"
+                      style={RESULT_ACTION_LINK_STYLE}
+                    >
+                      네이버 지도
                     </Link>
                   </Grid>
                 </VStack>
