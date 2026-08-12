@@ -680,8 +680,6 @@ export default function App() {
                             placeholder={favoritesOnly ? "즐겨찾기 전체" : "전체 서울"}
                             triggerDisplay="badges"
                             maxBadges={2}
-                            hasSearch
-                            searchPlaceholder="지역 검색…"
                             width="100%"
                             isLoading={facilityState === "loading"}
                             isDisabled={facilityState !== "ready" || favoritesOnly}
