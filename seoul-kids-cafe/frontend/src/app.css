@@ -68,9 +68,14 @@
 }
 
 .kids-cafe-favorite-icon--active {
-  color: var(--color-icon-yellow);
+  color: var(--color-icon-primary);
   fill: currentColor;
   stroke: currentColor;
+}
+
+.kids-cafe-result-item .astryx-toggle-button[data-is-pressed="true"] {
+  background-color: transparent;
+  border-color: transparent;
 }
 
 .kids-cafe-naver-map-icon {
