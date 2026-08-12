@@ -4,7 +4,8 @@ import availabilityWorker, {
   dayNoForDate,
   normalizeSession,
   parseFacilities,
-  parseFacilityMetadataPage
+  parseFacilityMetadataPage,
+  refreshStartedSessions
 } from "./worker.js";
 
 test("공식 시설 선택 목록을 내부 시설 모델로 바꾼다", () => {
@@ -84,7 +85,7 @@ test("정원과 예약 인원으로 남은 자리를 계산한다", () => {
   assert.equal(session.startsAt, "09:40");
 });
 
-test("오늘 이미 끝난 회차와 단체 회차를 구분한다", () => {
+test("오늘 이미 시작한 회차와 단체 회차를 구분한다", () => {
   const facility = { id: "DJ230901" };
   const row = {
     tmeSn: 2,
@@ -96,11 +97,38 @@ test("오늘 이미 끝난 회차와 단체 회차를 구분한다", () => {
     resveNmpr: 0,
     restdeCtgCd: null
   };
-  const now = { year: "2026", month: "08", day: "11", hour: "12", minute: "01" };
+  const now = { year: "2026", month: "08", day: "11", hour: "10", minute: "01" };
   const session = normalizeSession(row, facility, "2026-08-11", now);
+  const sessionAtStart = normalizeSession(row, facility, "2026-08-11", {
+    ...now,
+    minute: "00"
+  });
+  const futureDateSession = normalizeSession(row, facility, "2026-08-12", now);
 
   assert.equal(session.status, "ended");
+  assert.equal(sessionAtStart.status, "ended");
+  assert.equal(futureDateSession.status, "available");
   assert.equal(session.audience, "group");
+});
+
+test("캐시된 오늘 회차도 현재 시작 시각을 다시 반영한다", () => {
+  const result = {
+    id: "DJ230901",
+    sessions: [
+      { id: "past", startsAt: "10:00", status: "available" },
+      { id: "future", startsAt: "12:00", status: "available" }
+    ]
+  };
+  const refreshed = refreshStartedSessions(result, "2026-08-11", {
+    year: "2026",
+    month: "08",
+    day: "11",
+    hour: "11",
+    minute: "00"
+  });
+
+  assert.equal(refreshed.sessions[0].status, "ended");
+  assert.equal(refreshed.sessions[1].status, "available");
 });
 
 test("시설별 캐시는 서로 다른 검색 조합에서도 재사용한다", async (t) => {

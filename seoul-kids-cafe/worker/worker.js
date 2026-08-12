@@ -282,6 +282,12 @@ function numberOrNull(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function sessionHasStarted(date, startsAt, now) {
+  const nowDate = now.year + "-" + now.month + "-" + now.day;
+  const nowTime = now.hour + ":" + now.minute;
+  return date === nowDate && startsAt && startsAt <= nowTime;
+}
+
 function normalizeSession(row, facility, date, now = seoulDateParts()) {
   const capacity = numberOrNull(row.resvePsncpa);
   const reserved = numberOrNull(row.resveNmpr);
@@ -301,9 +307,7 @@ function normalizeSession(row, facility, date, now = seoulDateParts()) {
   if (row.restdeCtgCd) {
     status = "closed";
   } else if (remainingSeats !== null) {
-    const nowDate = now.year + "-" + now.month + "-" + now.day;
-    const nowTime = now.hour + ":" + now.minute;
-    if (date === nowDate && endsAt && endsAt <= nowTime) status = "ended";
+    if (sessionHasStarted(date, startsAt, now)) status = "ended";
     else status = remainingSeats > 0 ? "available" : "sold-out";
   }
 
@@ -316,6 +320,17 @@ function normalizeSession(row, facility, date, now = seoulDateParts()) {
     endsAt,
     remainingSeats,
     status
+  };
+}
+
+function refreshStartedSessions(result, date, now) {
+  return {
+    ...result,
+    sessions: (result.sessions || []).map((session) => (
+      session.status === "available" && sessionHasStarted(date, session.startsAt, now)
+        ? {...session, status: "ended"}
+        : session
+    ))
   };
 }
 
@@ -554,7 +569,7 @@ async function handleAvailability(request, ctx, origin) {
     date,
     fetchedAt: oldestFetchedAt,
     expiresAt: earliestExpiresAt,
-    results: entries.map((entry) => entry.result)
+    results: entries.map((entry) => refreshStartedSessions(entry.result, date, now))
   };
   const response = jsonResponse(payload, 200, {
     "Cache-Control": "public, max-age=60, s-maxage=" + AVAILABILITY_CACHE_SECONDS
@@ -594,5 +609,6 @@ export {
   dayNoForDate,
   normalizeSession,
   parseFacilities,
-  parseFacilityMetadataPage
+  parseFacilityMetadataPage,
+  refreshStartedSessions
 };

@@ -3,6 +3,7 @@ import {AppShell} from "@astryxdesign/core/AppShell";
 import {AspectRatio} from "@astryxdesign/core/AspectRatio";
 import {Banner} from "@astryxdesign/core/Banner";
 import {Button} from "@astryxdesign/core/Button";
+import {CheckboxInput} from "@astryxdesign/core/CheckboxInput";
 import {DateInput} from "@astryxdesign/core/DateInput";
 import {EmptyState} from "@astryxdesign/core/EmptyState";
 import {Grid} from "@astryxdesign/core/Grid";
@@ -17,6 +18,7 @@ import {Spinner} from "@astryxdesign/core/Spinner";
 import {HStack, VStack} from "@astryxdesign/core/Stack";
 import {Text} from "@astryxdesign/core/Text";
 import {Theme} from "@astryxdesign/core/theme";
+import {ToggleButton} from "@astryxdesign/core/ToggleButton";
 import {neutralTheme} from "@astryxdesign/theme-neutral/built";
 
 const API_BASE = document.documentElement.dataset.apiBase?.replace(/\/$/, "")
@@ -30,6 +32,7 @@ const MIN_SEATS = 1;
 const MAX_SEATS = 10;
 const SEATS_STORAGE_KEY = "kidsCafeSeatsV2";
 const DISTRICTS_STORAGE_KEY = "kidsCafeDistricts";
+const FAVORITES_STORAGE_KEY = "kidsCafeFavoritesV1";
 const KOREAN_WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const RESULT_ACTION_LINK_STYLE = {
@@ -137,6 +140,16 @@ function readSavedDistricts() {
   return [];
 }
 
+function readSavedFavorites() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(FAVORITES_STORAGE_KEY) || "[]");
+    if (Array.isArray(saved)) return [...new Set(saved.filter((id) => typeof id === "string"))];
+  } catch {
+    // 브라우저 저장소가 차단돼도 검색과 현재 화면은 그대로 동작한다.
+  }
+  return [];
+}
+
 async function fetchJson(url, signal) {
   const response = await fetch(url, {
     method: "GET",
@@ -167,11 +180,27 @@ function sessionSortValue(session) {
   return session.startsAt || "9999";
 }
 
-function matchingSessions(result, requiredSeats) {
+function seoulTimeString(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Seoul",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => (
+    [part.type, part.value]
+  )));
+  return `${values.hour}:${values.minute}`;
+}
+
+function matchingSessions(result, requiredSeats, searchDate, now) {
+  const isToday = searchDate === seoulDateString(now);
+  const nowTime = isToday ? seoulTimeString(now) : "";
   return (result.sessions || []).filter((session) => (
     session.status === "available"
       && session.audience !== "group"
       && Number(session.remainingSeats) >= requiredSeats
+      && (!isToday || (session.startsAt && session.startsAt > nowTime))
   )).sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
 }
 
@@ -182,9 +211,26 @@ function facilityCapacityText(capacity) {
   return labels.join(" · ");
 }
 
-function FacilityResults({entries}) {
+function FavoriteStarOutlineIcon() {
+  return (
+    <svg className="kids-cafe-favorite-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+    </svg>
+  );
+}
+
+function FavoriteStarSolidIcon() {
+  return (
+    <svg className="kids-cafe-favorite-icon kids-cafe-favorite-icon--active" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+    </svg>
+  );
+}
+
+function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
   const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
   const loadMoreRef = useRef(null);
+  const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const visibleEntries = entries.slice(0, visibleCount);
   const hasMore = visibleCount < entries.length;
 
@@ -230,6 +276,18 @@ function FacilityResults({entries}) {
                 <Text type="large" weight="semibold" color="primary">
                   {result.name}
                 </Text>
+              )}
+              endContent={(
+                <ToggleButton
+                  label={`${result.name} 즐겨찾기`}
+                  tooltip={`${result.name} 즐겨찾기`}
+                  icon={<FavoriteStarOutlineIcon />}
+                  pressedIcon={<FavoriteStarSolidIcon />}
+                  isIconOnly
+                  size="sm"
+                  isPressed={favoriteIdSet.has(result.id)}
+                  onPressedChange={(isPressed) => onFavoriteChange(result.id, isPressed)}
+                />
               )}
               description={
                 <VStack gap={3}>
@@ -313,6 +371,8 @@ export default function App() {
   const [facilities, setFacilities] = useState([]);
   const [districts, setDistricts] = useState([]);
   const [selectedDistricts, setSelectedDistricts] = useState(readSavedDistricts);
+  const [favoriteIds, setFavoriteIds] = useState(readSavedFavorites);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [facilityState, setFacilityState] = useState("loading");
   const [facilityError, setFacilityError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -342,16 +402,31 @@ export default function App() {
   }, [selectedDistricts]);
 
   useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoriteIds));
+    } catch {
+      // 저장 실패는 현재 화면의 즐겨찾기 상태에 영향을 주지 않는다.
+    }
+  }, [favoriteIds]);
+
+  useEffect(() => {
+    if (favoriteIds.length === 0) setFavoritesOnly(false);
+  }, [favoriteIds.length]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     async function loadFacilities() {
       if (!API_BASE) throw new Error("실시간 조회 API가 연결되지 않았습니다.");
       const payload = await fetchJson(`${API_BASE}/api/v2/facilities`, controller.signal);
-      setFacilities(payload.facilities || []);
+      const loadedFacilities = payload.facilities || [];
+      const loadedFacilityIds = new Set(loadedFacilities.map((facility) => facility.id));
+      setFacilities(loadedFacilities);
       setDistricts(payload.districts || []);
       setSelectedDistricts((current) => current.filter((district) => (
         (payload.districts || []).includes(district)
       )));
+      setFavoriteIds((current) => current.filter((id) => loadedFacilityIds.has(id)));
       setFacilityState("ready");
     }
 
@@ -374,21 +449,26 @@ export default function App() {
   }, []);
 
   const requiredSeats = activeCriteria?.seats ?? seats;
+  const resultDate = activeCriteria?.date ?? date;
+  const favoriteIdSet = useMemo(() => new Set(favoriteIds), [favoriteIds]);
   const facilitiesById = useMemo(() => new Map(
     facilities.map((facility) => [facility.id, facility])
   ), [facilities]);
   const entries = useMemo(() => {
-    return results.map((result) => {
+    const now = new Date();
+    return results.filter((result) => (
+      !activeCriteria?.favoritesOnly || favoriteIdSet.has(result.id)
+    )).map((result) => {
       const facility = facilitiesById.get(result.id);
       return {
         result: facility ? {...result, ...facility, sessions: result.sessions} : result,
-        sessions: matchingSessions(result, requiredSeats)
+        sessions: matchingSessions(result, requiredSeats, resultDate, now)
       };
     }).filter((entry) => entry.sessions.length > 0).sort((a, b) => {
       const timeOrder = sessionSortValue(a.sessions[0]).localeCompare(sessionSortValue(b.sessions[0]));
       return timeOrder || a.result.name.localeCompare(b.result.name, "ko");
     });
-  }, [facilitiesById, requiredSeats, results]);
+  }, [activeCriteria?.favoritesOnly, facilitiesById, favoriteIdSet, requiredSeats, resultDate, results]);
 
   const totalSessions = entries.reduce((total, entry) => total + entry.sessions.length, 0);
   const oldestFetchedAt = fetchedTimes.length > 0
@@ -405,10 +485,13 @@ export default function App() {
     const controller = new AbortController();
     activeController.current = controller;
     const sequence = ++searchSequence.current;
-    const selectedFacilities = selectedDistricts.length === 0
+    const facilitiesInDistricts = selectedDistricts.length === 0
       ? facilities
       : facilities.filter((facility) => selectedDistricts.includes(facility.district));
-    const criteria = {date, seats, districts: [...selectedDistricts]};
+    const selectedFacilities = favoritesOnly
+      ? facilitiesInDistricts.filter((facility) => favoriteIdSet.has(facility.id))
+      : facilitiesInDistricts;
+    const criteria = {date, seats, districts: [...selectedDistricts], favoritesOnly};
     const chunks = chunksOf(selectedFacilities, CHUNK_SIZE);
     let nextChunkIndex = 0;
     let checkedCount = 0;
@@ -464,6 +547,15 @@ export default function App() {
   const conditionDistricts = activeCriteria?.districts.length
     ? activeCriteria.districts.join(", ")
     : "전체 서울";
+  const conditionFavorites = activeCriteria?.favoritesOnly ? " · 즐겨찾기만" : "";
+
+  function updateFavorite(facilityId, isFavorite) {
+    setFavoriteIds((current) => (
+      isFavorite
+        ? [...new Set([...current, facilityId])]
+        : current.filter((id) => id !== facilityId)
+    ));
+  }
 
   return (
     <Theme theme={neutralTheme} mode="light">
@@ -563,6 +655,14 @@ export default function App() {
                           />
                         </VStack>
                       </Grid>
+                      <CheckboxInput
+                        label={`즐겨찾기만 확인 (${favoriteIds.length})`}
+                        value={favoritesOnly}
+                        onChange={setFavoritesOnly}
+                        isDisabled={favoriteIds.length === 0}
+                        disabledMessage="검색 결과에서 별 아이콘을 눌러 시설을 즐겨찾기에 추가해 주세요."
+                        size="sm"
+                      />
                       <Button
                         label="빈자리 찾기"
                         type="submit"
@@ -591,7 +691,7 @@ export default function App() {
                         <Text type="label" color="accent">검색 결과</Text>
                         <Heading level={2}>{entries.length}곳 · {totalSessions}개 회차</Heading>
                         <Text type="supporting">
-                          {formatSearchDate(activeCriteria.date)} · {activeCriteria.seats}자리 이상 · {conditionDistricts}
+                          {formatSearchDate(activeCriteria.date)} · {activeCriteria.seats}자리 이상 · {conditionDistricts}{conditionFavorites}
                         </Text>
                       </VStack>
                       {oldestFetchedAt && (
@@ -621,7 +721,13 @@ export default function App() {
                         headingLevel={3}
                       />
                     ) : (
-                      entries.length > 0 && <FacilityResults entries={entries} />
+                      entries.length > 0 && (
+                        <FacilityResults
+                          entries={entries}
+                          favoriteIds={favoriteIds}
+                          onFavoriteChange={updateFavorite}
+                        />
+                      )
                     )}
 
                     {!isSearching && entries.length > 0 && failedCount === 0 && (

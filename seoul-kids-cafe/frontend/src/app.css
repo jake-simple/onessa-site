@@ -58,6 +58,21 @@
   background-color: var(--color-background-muted);
 }
 
+.kids-cafe-favorite-icon {
+  fill: none;
+  height: var(--spacing-5);
+  stroke: currentColor;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  width: var(--spacing-5);
+}
+
+.kids-cafe-favorite-icon--active {
+  color: var(--color-icon-yellow);
+  fill: currentColor;
+  stroke: currentColor;
+}
+
 .kids-cafe-results-load-sentinel {
   min-height: var(--size-element-lg);
 }
