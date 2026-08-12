@@ -626,7 +626,12 @@ export default function App() {
                 </VStack>
               </Section>
 
-              <Section variant="section" padding={6} dividers={["bottom"]}>
+              <Section
+                variant="section"
+                padding={6}
+                dividers={["bottom"]}
+                className="kids-cafe-search-panel"
+              >
                 <VStack gap={6}>
                   <VStack gap={1}>
                     <Heading level={2}>언제, 몇 자리 필요한가요?</Heading>
