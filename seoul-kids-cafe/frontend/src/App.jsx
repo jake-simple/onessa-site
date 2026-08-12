@@ -3,7 +3,6 @@ import {AppShell} from "@astryxdesign/core/AppShell";
 import {AspectRatio} from "@astryxdesign/core/AspectRatio";
 import {Banner} from "@astryxdesign/core/Banner";
 import {Button} from "@astryxdesign/core/Button";
-import {Carousel} from "@astryxdesign/core/Carousel";
 import {DateInput} from "@astryxdesign/core/DateInput";
 import {EmptyState} from "@astryxdesign/core/EmptyState";
 import {Grid} from "@astryxdesign/core/Grid";
@@ -61,9 +60,6 @@ const ASTRYX_KOREAN_OVERRIDES = {
     "@astryx.calendar.previousMonth": "이전 달",
     "@astryx.calendar.nextMonth": "다음 달",
     "@astryx.calendar.daySelected": "{date}, 선택됨",
-    "@astryx.carousel.scrollLeft": "이전 시설 사진",
-    "@astryx.carousel.scrollRight": "다음 시설 사진",
-    "@astryx.carousel.slideLabel": "전체 {total, number}개 중 {current, number}번째",
     "@astryx.dateInput.dialogLabel": "날짜 선택",
     "@astryx.dateInput.closeCalendar": "달력 닫기",
     "@astryx.dateInput.openCalendar": "달력 열기",
@@ -186,39 +182,6 @@ function facilityCapacityText(capacity) {
   return labels.join(" · ");
 }
 
-function FacilityImagePreview({result}) {
-  return (
-    <Link
-      href={`#facility-${result.id}`}
-      isStandalone
-      color="inherit"
-      className="kids-cafe-result-preview"
-      aria-label={`${result.name} 상세 결과로 이동`}
-    >
-      <VStack gap={2}>
-        <AspectRatio ratio={4 / 3} fit="cover" className="kids-cafe-result-preview__thumbnail">
-          {result.thumbnailUrl ? (
-            <img src={result.thumbnailUrl} alt={`${result.name} 시설 사진`} loading="lazy" />
-          ) : (
-            <HStack
-              width="100%"
-              height="100%"
-              hAlign="center"
-              vAlign="center"
-              className="kids-cafe-result-thumbnail__placeholder"
-            >
-              <Text type="supporting" color="secondary">사진 없음</Text>
-            </HStack>
-          )}
-        </AspectRatio>
-        <Text type="supporting" weight="semibold" color="primary">
-          {result.name}
-        </Text>
-      </VStack>
-    </Link>
-  );
-}
-
 function FacilityResults({entries}) {
   const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
   const loadMoreRef = useRef(null);
@@ -239,21 +202,30 @@ function FacilityResults({entries}) {
 
   return (
     <VStack gap={5}>
-      <VStack gap={2}>
-        <Text type="label">시설 사진 한눈에 보기</Text>
-        <Carousel aria-label="예약 가능한 시설 사진" gap={2} hasSnap>
-          {visibleEntries.map(({result}) => (
-            <FacilityImagePreview key={result.id} result={result} />
-          ))}
-        </Carousel>
-      </VStack>
       <List hasDividers density="spacious" header={<Heading level={2}>예약 가능한 시설</Heading>}>
         {visibleEntries.map(({result, sessions}) => {
           const capacityText = facilityCapacityText(result.capacity);
           return (
             <ListItem
               key={result.id}
-              id={`facility-${result.id}`}
+              className="kids-cafe-result-item"
+              startContent={(
+                <AspectRatio ratio={4 / 3} fit="cover" className="kids-cafe-result-item__thumbnail">
+                  {result.thumbnailUrl ? (
+                    <img src={result.thumbnailUrl} alt={`${result.name} 시설 사진`} loading="lazy" />
+                  ) : (
+                    <HStack
+                      width="100%"
+                      height="100%"
+                      hAlign="center"
+                      vAlign="center"
+                      className="kids-cafe-result-thumbnail__placeholder"
+                    >
+                      <Text type="supporting" color="secondary">사진 없음</Text>
+                    </HStack>
+                  )}
+                </AspectRatio>
+              )}
               label={(
                 <Text type="large" weight="semibold" color="primary">
                   {result.name}
