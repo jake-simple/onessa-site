@@ -68,7 +68,7 @@
 }
 
 .kids-cafe-favorite-icon--active {
-  color: var(--color-icon-primary);
+  color: #ffd400;
   fill: currentColor;
   stroke: currentColor;
 }
