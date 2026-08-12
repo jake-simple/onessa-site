@@ -298,7 +298,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                   icon={<FavoriteStarOutlineIcon />}
                   pressedIcon={<FavoriteStarSolidIcon />}
                   isIconOnly
-                  size="md"
+                  size="lg"
                   isPressed={favoriteIdSet.has(result.id)}
                   onPressedChange={(isPressed) => onFavoriteChange(result.id, isPressed)}
                 />
