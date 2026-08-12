@@ -75,9 +75,9 @@
 
 .kids-cafe-naver-map-icon {
   display: block;
-  height: var(--spacing-10);
+  height: var(--spacing-8);
   object-fit: contain;
-  width: var(--spacing-10);
+  width: var(--spacing-8);
 }
 
 .kids-cafe-results-load-sentinel {

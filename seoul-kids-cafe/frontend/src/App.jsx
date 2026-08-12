@@ -57,6 +57,13 @@ const RESULT_PRIMARY_ACTION_LINK_STYLE = {
   borderColor: "var(--color-accent)",
   color: "var(--color-on-accent)"
 };
+const RESULT_ICON_ACTION_LINK_STYLE = {
+  ...RESULT_ACTION_LINK_STYLE,
+  height: "var(--size-element-md)",
+  justifySelf: "start",
+  paddingInline: 0,
+  width: "var(--size-element-md)"
+};
 const ASTRYX_KOREAN_OVERRIDES = {
   "ko-KR": {
     "@astryx.appShell.skipToContent": "본문으로 건너뛰기",
@@ -354,7 +361,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       label="네이버 지도에서 보기 (새 창에서 열림)"
                       tooltip="네이버 지도에서 보기"
                       color="inherit"
-                      style={RESULT_ACTION_LINK_STYLE}
+                      style={RESULT_ICON_ACTION_LINK_STYLE}
                     >
                       <img
                         src="/seoul-kids-cafe/naver-map-icon-v1.png"
