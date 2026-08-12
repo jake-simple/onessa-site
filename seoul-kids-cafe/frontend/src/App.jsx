@@ -272,21 +272,25 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                 </AspectRatio>
               )}
               label={(
-                <Text type="large" weight="semibold" color="primary">
-                  {result.name}
-                </Text>
+                <HStack width="100%" className="kids-cafe-result-item__heading">
+                  <Text type="large" weight="semibold" color="primary">
+                    {result.name}
+                  </Text>
+                </HStack>
               )}
               endContent={(
-                <ToggleButton
-                  label={`${result.name} 즐겨찾기`}
-                  tooltip={`${result.name} 즐겨찾기`}
-                  icon={<FavoriteStarOutlineIcon />}
-                  pressedIcon={<FavoriteStarSolidIcon />}
-                  isIconOnly
-                  size="lg"
-                  isPressed={favoriteIdSet.has(result.id)}
-                  onPressedChange={(isPressed) => onFavoriteChange(result.id, isPressed)}
-                />
+                <HStack className="kids-cafe-result-item__favorite" vAlign="center">
+                  <ToggleButton
+                    label={`${result.name} 즐겨찾기`}
+                    tooltip={`${result.name} 즐겨찾기`}
+                    icon={<FavoriteStarOutlineIcon />}
+                    pressedIcon={<FavoriteStarSolidIcon />}
+                    isIconOnly
+                    size="lg"
+                    isPressed={favoriteIdSet.has(result.id)}
+                    onPressedChange={(isPressed) => onFavoriteChange(result.id, isPressed)}
+                  />
+                </HStack>
               )}
               description={
                 <VStack gap={3}>

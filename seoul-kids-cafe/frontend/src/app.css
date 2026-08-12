@@ -83,6 +83,22 @@
 }
 
 @media (max-width: 480px) {
+  .kids-cafe-result-item {
+    position: relative;
+  }
+
+  .kids-cafe-result-item__heading {
+    box-sizing: border-box;
+    padding-inline-end: var(--size-element-lg);
+  }
+
+  .kids-cafe-result-item__favorite {
+    inset-block-start: 0;
+    inset-inline-end: 0;
+    position: absolute;
+    z-index: 1;
+  }
+
   .kids-cafe-result-item__thumbnail {
     width: calc(var(--spacing-12) * 2);
   }
