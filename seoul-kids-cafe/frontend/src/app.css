@@ -42,7 +42,7 @@
 }
 
 .kids-cafe-search-panel {
-  border-radius: var(--radius-container);
+  border-radius: var(--radius-page);
   overflow: hidden;
 }
 

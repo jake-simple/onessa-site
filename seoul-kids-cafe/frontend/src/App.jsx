@@ -599,7 +599,6 @@ export default function App() {
                 variant="muted"
                 padding={6}
                 paddingBlock={8}
-                dividers={["bottom"]}
                 className="kids-cafe-hero"
               >
                 <HStack
