@@ -232,6 +232,15 @@ function FavoriteStarSolidIcon() {
   );
 }
 
+function NaverMapIcon() {
+  return (
+    <svg className="kids-cafe-naver-map-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21s6-5.2 6-11a6 6 0 1 0-12 0c0 5.8 6 11 6 11Z" />
+      <path d="M9.2 13.5v-7l5.6 7v-7" />
+    </svg>
+  );
+}
+
 function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
   const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
   const loadMoreRef = useRef(null);
@@ -351,11 +360,12 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       href={naverMapSearchUrl(result)}
                       target="_blank"
                       isStandalone
-                      aria-label="네이버 지도에서 보기 (새 창에서 열림)"
+                      label="네이버 지도에서 보기 (새 창에서 열림)"
+                      tooltip="네이버 지도에서 보기"
                       color="inherit"
                       style={RESULT_ACTION_LINK_STYLE}
                     >
-                      네이버 지도
+                      <NaverMapIcon />
                     </Link>
                   </Grid>
                 </VStack>

@@ -73,6 +73,17 @@
   stroke: currentColor;
 }
 
+.kids-cafe-naver-map-icon {
+  color: var(--color-icon-green);
+  fill: none;
+  height: var(--spacing-6);
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.75;
+  width: var(--spacing-6);
+}
+
 .kids-cafe-results-load-sentinel {
   min-height: var(--size-element-lg);
 }
