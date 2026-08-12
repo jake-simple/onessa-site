@@ -11,3 +11,14 @@ createRoot(document.getElementById("root")).render(
     <App />
   </StrictMode>
 );
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/seoul-kids-cafe/image-cache-sw.js", {
+      scope: "/seoul-kids-cafe/",
+      updateViaCache: "none"
+    }).catch(() => {
+      // 이미지 캐시를 사용할 수 없어도 사이트와 검색 기능은 그대로 동작한다.
+    });
+  });
+}

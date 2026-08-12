@@ -1,7 +1,9 @@
 import {useEffect, useMemo, useRef, useState} from "react";
 import {AppShell} from "@astryxdesign/core/AppShell";
+import {AspectRatio} from "@astryxdesign/core/AspectRatio";
 import {Banner} from "@astryxdesign/core/Banner";
 import {Button} from "@astryxdesign/core/Button";
+import {Carousel} from "@astryxdesign/core/Carousel";
 import {DateInput} from "@astryxdesign/core/DateInput";
 import {EmptyState} from "@astryxdesign/core/EmptyState";
 import {Grid} from "@astryxdesign/core/Grid";
@@ -24,6 +26,7 @@ const API_BASE = document.documentElement.dataset.apiBase?.replace(/\/$/, "")
     : "");
 const CHUNK_SIZE = 24;
 const MAX_PARALLEL_CHUNKS = 2;
+const RESULT_PAGE_SIZE = 10;
 const MIN_SEATS = 1;
 const MAX_SEATS = 10;
 const SEATS_STORAGE_KEY = "kidsCafeSeatsV2";
@@ -40,8 +43,8 @@ const RESULT_ACTION_LINK_STYLE = {
   boxSizing: "border-box",
   color: "var(--color-text-primary)",
   justifyContent: "center",
-  minHeight: "var(--spacing-11)",
-  paddingInline: "var(--spacing-3)",
+  minHeight: "var(--size-element-md)",
+  paddingInline: "var(--spacing-2)",
   whiteSpace: "nowrap",
   width: "100%"
 };
@@ -58,6 +61,9 @@ const ASTRYX_KOREAN_OVERRIDES = {
     "@astryx.calendar.previousMonth": "이전 달",
     "@astryx.calendar.nextMonth": "다음 달",
     "@astryx.calendar.daySelected": "{date}, 선택됨",
+    "@astryx.carousel.scrollLeft": "이전 시설 사진",
+    "@astryx.carousel.scrollRight": "다음 시설 사진",
+    "@astryx.carousel.slideLabel": "전체 {total, number}개 중 {current, number}번째",
     "@astryx.dateInput.dialogLabel": "날짜 선택",
     "@astryx.dateInput.closeCalendar": "달력 닫기",
     "@astryx.dateInput.openCalendar": "달력 열기",
@@ -173,64 +179,158 @@ function matchingSessions(result, requiredSeats) {
   )).sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
 }
 
-function FacilityResults({entries}) {
+function facilityCapacityText(capacity) {
+  const labels = [];
+  if (Number.isFinite(capacity?.individual)) labels.push(`개인 ${capacity.individual}명`);
+  if (Number.isFinite(capacity?.group)) labels.push(`단체 ${capacity.group}명`);
+  return labels.join(" · ");
+}
+
+function FacilityImagePreview({result}) {
   return (
-    <List hasDividers density="spacious" header={<Heading level={2}>예약 가능한 시설</Heading>}>
-      {entries.map(({result, sessions}) => (
-        <ListItem
-          key={result.id}
-          label={(
-            <Text type="large" weight="semibold" color="primary">
-              {result.name}
-            </Text>
+    <Link
+      href={`#facility-${result.id}`}
+      isStandalone
+      color="inherit"
+      className="kids-cafe-result-preview"
+      aria-label={`${result.name} 상세 결과로 이동`}
+    >
+      <VStack gap={2}>
+        <AspectRatio ratio={4 / 3} fit="cover" className="kids-cafe-result-preview__thumbnail">
+          {result.thumbnailUrl ? (
+            <img src={result.thumbnailUrl} alt={`${result.name} 시설 사진`} loading="lazy" />
+          ) : (
+            <HStack
+              width="100%"
+              height="100%"
+              hAlign="center"
+              vAlign="center"
+              className="kids-cafe-result-thumbnail__placeholder"
+            >
+              <Text type="supporting" color="secondary">사진 없음</Text>
+            </HStack>
           )}
-          description={
-            <VStack gap={3}>
-              <Text type="supporting" color="secondary">
-                {result.district} · {sessions.length}개 회차
-              </Text>
-              <VStack gap={1.5}>
-                {sessions.map((session) => (
-                  <HStack key={`${result.id}-${session.id || session.startsAt}`} gap={2} wrap="wrap" vAlign="center">
-                    <Text type="label" hasTabularNumbers>
-                      {session.startsAt}–{session.endsAt}
+        </AspectRatio>
+        <Text type="supporting" weight="semibold" color="primary">
+          {result.name}
+        </Text>
+      </VStack>
+    </Link>
+  );
+}
+
+function FacilityResults({entries}) {
+  const [visibleCount, setVisibleCount] = useState(RESULT_PAGE_SIZE);
+  const loadMoreRef = useRef(null);
+  const visibleEntries = entries.slice(0, visibleCount);
+  const hasMore = visibleCount < entries.length;
+
+  useEffect(() => {
+    if (!hasMore || !loadMoreRef.current) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      setVisibleCount((current) => Math.min(current + RESULT_PAGE_SIZE, entries.length));
+    }, {rootMargin: "240px 0px"});
+
+    observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [entries.length, hasMore]);
+
+  return (
+    <VStack gap={5}>
+      <VStack gap={2}>
+        <Text type="label">시설 사진 한눈에 보기</Text>
+        <Carousel aria-label="예약 가능한 시설 사진" gap={2} hasSnap>
+          {visibleEntries.map(({result}) => (
+            <FacilityImagePreview key={result.id} result={result} />
+          ))}
+        </Carousel>
+      </VStack>
+      <List hasDividers density="spacious" header={<Heading level={2}>예약 가능한 시설</Heading>}>
+        {visibleEntries.map(({result, sessions}) => {
+          const capacityText = facilityCapacityText(result.capacity);
+          return (
+            <ListItem
+              key={result.id}
+              id={`facility-${result.id}`}
+              label={(
+                <Text type="large" weight="semibold" color="primary">
+                  {result.name}
+                </Text>
+              )}
+              description={
+                <VStack gap={3}>
+                  <VStack gap={1}>
+                    {capacityText && (
+                      <Text type="label" hasTabularNumbers>
+                        이용 정원 · {capacityText}
+                      </Text>
+                    )}
+                    {result.address && (
+                      <Text type="supporting" color="secondary">
+                        주소 · {result.address}
+                      </Text>
+                    )}
+                    <Text type="supporting" color="secondary">
+                      {result.district} · {sessions.length}개 회차
                     </Text>
-                    <Text type="supporting">
-                      {session.label}{session.category ? ` · ${session.category}` : ""}
-                    </Text>
-                    <Text type="label" color="accent" hasTabularNumbers>
-                      {session.remainingSeats}자리 남음
-                    </Text>
-                  </HStack>
-                ))}
-              </VStack>
-              <Grid columns={{minWidth: 140, max: 2, repeat: "fit"}} gap={2} width="100%" maxWidth={360}>
-                <Link
-                  href={officialFacilityGuideUrl(result.id)}
-                  isExternalLink
-                  isStandalone
-                  newTabLabel="(새 창에서 열림)"
-                  color="inherit"
-                  style={RESULT_ACTION_LINK_STYLE}
-                >
-                  이용 안내
-                </Link>
-                <Link
-                  href={result.officialReservationUrl}
-                  isExternalLink
-                  isStandalone
-                  newTabLabel="(새 창에서 열림)"
-                  color="inherit"
-                  style={RESULT_PRIMARY_ACTION_LINK_STYLE}
-                >
-                  공식 사이트 예약
-                </Link>
-              </Grid>
-            </VStack>
-          }
-        />
-      ))}
-    </List>
+                  </VStack>
+                  <VStack gap={1.5}>
+                    {sessions.map((session) => (
+                      <HStack key={`${result.id}-${session.id || session.startsAt}`} gap={2} wrap="wrap" vAlign="center">
+                        <Text type="label" hasTabularNumbers>
+                          {session.startsAt}–{session.endsAt}
+                        </Text>
+                        <Text type="supporting">
+                          {session.label}{session.category ? ` · ${session.category}` : ""}
+                        </Text>
+                        <Text type="label" color="accent" hasTabularNumbers>
+                          {session.remainingSeats}자리 남음
+                        </Text>
+                      </HStack>
+                    ))}
+                  </VStack>
+                  <Grid columns={{minWidth: 112, max: 2, repeat: "fit"}} gap={2} width="100%" maxWidth={300}>
+                    <Link
+                      href={officialFacilityGuideUrl(result.id)}
+                      target="_blank"
+                      isStandalone
+                      aria-label="이용 안내 (새 창에서 열림)"
+                      color="inherit"
+                      style={RESULT_ACTION_LINK_STYLE}
+                    >
+                      이용 안내
+                    </Link>
+                    <Link
+                      href={result.officialReservationUrl}
+                      target="_blank"
+                      isStandalone
+                      aria-label="공식 사이트 예약 (새 창에서 열림)"
+                      color="inherit"
+                      style={RESULT_PRIMARY_ACTION_LINK_STYLE}
+                    >
+                      공식 사이트 예약
+                    </Link>
+                  </Grid>
+                </VStack>
+              }
+            />
+          );
+        })}
+      </List>
+      {hasMore && (
+        <HStack
+          ref={loadMoreRef}
+          width="100%"
+          hAlign="center"
+          aria-label="다음 시설 불러오기"
+          className="kids-cafe-results-load-sentinel"
+        >
+          <Spinner size="sm" label="다음 시설 불러오는 중" />
+        </HStack>
+      )}
+    </VStack>
   );
 }
 
@@ -274,7 +374,7 @@ export default function App() {
 
     async function loadFacilities() {
       if (!API_BASE) throw new Error("실시간 조회 API가 연결되지 않았습니다.");
-      const payload = await fetchJson(`${API_BASE}/api/facilities`, controller.signal);
+      const payload = await fetchJson(`${API_BASE}/api/v2/facilities`, controller.signal);
       setFacilities(payload.facilities || []);
       setDistricts(payload.districts || []);
       setSelectedDistricts((current) => current.filter((district) => (
@@ -302,15 +402,21 @@ export default function App() {
   }, []);
 
   const requiredSeats = activeCriteria?.seats ?? seats;
+  const facilitiesById = useMemo(() => new Map(
+    facilities.map((facility) => [facility.id, facility])
+  ), [facilities]);
   const entries = useMemo(() => {
-    return results.map((result) => ({
-      result,
-      sessions: matchingSessions(result, requiredSeats)
-    })).filter((entry) => entry.sessions.length > 0).sort((a, b) => {
+    return results.map((result) => {
+      const facility = facilitiesById.get(result.id);
+      return {
+        result: facility ? {...result, ...facility, sessions: result.sessions} : result,
+        sessions: matchingSessions(result, requiredSeats)
+      };
+    }).filter((entry) => entry.sessions.length > 0).sort((a, b) => {
       const timeOrder = sessionSortValue(a.sessions[0]).localeCompare(sessionSortValue(b.sessions[0]));
       return timeOrder || a.result.name.localeCompare(b.result.name, "ko");
     });
-  }, [requiredSeats, results]);
+  }, [facilitiesById, requiredSeats, results]);
 
   const totalSessions = entries.reduce((total, entry) => total + entry.sessions.length, 0);
   const oldestFetchedAt = fetchedTimes.length > 0
@@ -383,9 +489,6 @@ export default function App() {
     }
   }
 
-  const districtDescription = selectedDistricts.length === 0
-    ? "선택하지 않으면 전체 서울을 검색합니다."
-    : `${selectedDistricts.length}개 지역을 선택했습니다.`;
   const conditionDistricts = activeCriteria?.districts.length
     ? activeCriteria.districts.join(", ")
     : "전체 서울";
@@ -486,9 +589,11 @@ export default function App() {
                             isDisabled={facilityState !== "ready"}
                             disabledMessage="시설 목록을 불러온 뒤 선택할 수 있습니다."
                           />
-                          <Text type="supporting" color="secondary">
-                            {districtDescription}
-                          </Text>
+                          {selectedDistricts.length > 0 && (
+                            <Text type="supporting" color="secondary">
+                              {selectedDistricts.length}개 지역을 선택했습니다.
+                            </Text>
+                          )}
                         </VStack>
                       </Grid>
                       <Button

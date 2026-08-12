@@ -41,6 +41,27 @@
   width: min(34vw, calc(var(--spacing-12) * 3));
 }
 
+.kids-cafe-result-preview {
+  display: block;
+  flex: 0 0 auto;
+  width: calc(var(--spacing-12) * 4);
+}
+
+.kids-cafe-result-preview__thumbnail {
+  background-color: var(--color-background-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-element);
+  width: 100%;
+}
+
+.kids-cafe-result-thumbnail__placeholder {
+  background-color: var(--color-background-muted);
+}
+
+.kids-cafe-results-load-sentinel {
+  min-height: var(--size-element-lg);
+}
+
 @media (max-width: 480px) {
   .kids-cafe-hero__shape--sun {
     inset-block-start: var(--spacing-8);

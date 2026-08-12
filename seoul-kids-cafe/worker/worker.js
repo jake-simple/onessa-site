@@ -1,4 +1,6 @@
 const SOURCE_ORIGIN = "https://umppa.seoul.go.kr";
+const FACILITY_LIST_ENDPOINT = SOURCE_ORIGIN + "/icare/user/kidsCafe/BD_selectKidsCafeList.do";
+const FACILITY_LIST_STYLES = ["2001", "2002"];
 const FACILITY_PAGES = ["SC251201", "SD240701"].map((facilityId) => {
   return SOURCE_ORIGIN + "/icare/user/kidsCafeResve/BD_selectKidsCafeResveCal.do?q_fcltyId=" + facilityId + "&q_fcltyStle=";
 });
@@ -96,11 +98,20 @@ function handleOptions(origin) {
 
 function decodeHtml(value) {
   return value
+    .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&quot;/g, "\"")
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
+}
+
+function plainText(value) {
+  return decodeHtml(value)
+    .replace(/<br\s*\/?\s*>/gi, " ")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function displayName(rawName) {
@@ -133,6 +144,44 @@ function parseFacilities(html) {
 
   if (facilities.length < 5) throw new Error("시설 목록이 예상보다 적습니다.");
   return facilities;
+}
+
+function parseFacilityMetadataPage(html) {
+  const facilities = [];
+  const cardPattern = /<div\s+class=["']kidscafe_wrap["'][^>]*>([\s\S]*?)<\/div>\s*<!--\s*kidscafe_wrap end\s*-->/gi;
+  let cardMatch;
+
+  while ((cardMatch = cardPattern.exec(html)) !== null) {
+    const card = cardMatch[1];
+    const idMatch = card.match(/BD_selectKidsCafeView\.do\?q_fcltyId=([A-Z0-9]+)/i);
+    if (!idMatch) continue;
+
+    const imageMatch = card.match(/<div\s+class=["']kidscafe_image["'][^>]*>[\s\S]*?<img\s+[^>]*src=["']([^"']+)["']/i);
+    const addressMatch = card.match(/<dt[^>]*>\s*주(?:\s|&nbsp;)*소\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i);
+    const capacityMatch = card.match(/<dt[^>]*>\s*이용정원\s*<\/dt>\s*<dd[^>]*>([\s\S]*?)<\/dd>/i);
+    const capacity = {};
+
+    if (capacityMatch) {
+      const capacityPattern = /<strong[^>]*>\s*(개인|단체)\s*<\/strong>\s*<span[^>]*>\s*(\d+)\s*명\s*<\/span>/gi;
+      let capacityValue;
+      while ((capacityValue = capacityPattern.exec(capacityMatch[1])) !== null) {
+        capacity[capacityValue[1] === "개인" ? "individual" : "group"] = Number(capacityValue[2]);
+      }
+    }
+
+    facilities.push({
+      id: idMatch[1],
+      address: addressMatch ? plainText(addressMatch[1]) : "",
+      thumbnailUrl: imageMatch ? new URL(decodeHtml(imageMatch[1]), SOURCE_ORIGIN).toString() : "",
+      capacity
+    });
+  }
+
+  const lastPageMatch = html.match(/jsMovePage\((\d+)\);\s*return false;["'][^>]*title=["']마지막페이지로 가기["']/i);
+  return {
+    facilities,
+    pageCount: lastPageMatch ? Number(lastPageMatch[1]) : 1
+  };
 }
 
 async function fetchWithTimeout(url, init, timeoutMs = UPSTREAM_TIMEOUT_MS) {
@@ -328,16 +377,88 @@ async function mapWithConcurrency(items, limit, mapper) {
   return results;
 }
 
-function canonicalAvailabilityCacheKey(requestUrl, date, ids) {
+async function fetchFacilityMetadataPage(facilityStyle, page) {
+  const url = new URL(FACILITY_LIST_ENDPOINT);
+  url.searchParams.set("q_hiddenVal", "1");
+  url.searchParams.set("q_rowPerPage", "5");
+  url.searchParams.set("q_fcltyStle", facilityStyle);
+  url.searchParams.set("q_currPage", String(page));
+
+  const response = await fetchWithTimeout(url, {
+    method: "GET",
+    headers: {
+      "Accept": "text/html,application/xhtml+xml",
+      "Accept-Language": "ko-KR,ko;q=0.9"
+    }
+  }, FACILITY_TIMEOUT_MS);
+  if (!response.ok) throw new Error("공식 시설 상세 목록 응답이 올바르지 않습니다.");
+  return parseFacilityMetadataPage(await response.text());
+}
+
+async function loadFacilityMetadata(ctx) {
+  const cacheKey = new Request("https://cache.internal/__cache/facility-metadata-v1", { method: "GET" });
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+
+  if (cached) {
+    return { payload: await cached.json(), cacheStatus: "HIT" };
+  }
+
+  const firstPages = await Promise.all(FACILITY_LIST_STYLES.map(async (facilityStyle) => ({
+    facilityStyle,
+    page: await fetchFacilityMetadataPage(facilityStyle, 1)
+  })));
+  const remainingPages = firstPages.flatMap(({ facilityStyle, page }) => (
+    Array.from({ length: Math.max(0, page.pageCount - 1) }, (_, index) => ({
+      facilityStyle,
+      pageNumber: index + 2
+    }))
+  ));
+  const loadedPages = await mapWithConcurrency(remainingPages, UPSTREAM_CONCURRENCY, ({ facilityStyle, pageNumber }) => (
+    fetchFacilityMetadataPage(facilityStyle, pageNumber)
+  ));
+  const metadataById = new Map();
+
+  for (const page of [...firstPages.map((entry) => entry.page), ...loadedPages]) {
+    for (const facility of page.facilities) metadataById.set(facility.id, facility);
+  }
+  if (metadataById.size < 5) throw new Error("시설 상세 목록이 예상보다 적습니다.");
+
+  const payload = {
+    fetchedAt: new Date().toISOString(),
+    facilities: [...metadataById.values()]
+  };
+  const cacheResponse = jsonResponse(payload, 200, {
+    "Cache-Control": "public, max-age=3600, s-maxage=" + FACILITY_CACHE_SECONDS
+  });
+  ctx.waitUntil(cache.put(cacheKey, cacheResponse.clone()));
+  return { payload, cacheStatus: "MISS" };
+}
+
+function facilityAvailabilityCacheKey(requestUrl, date, facilityId) {
   const origin = new URL(requestUrl).origin;
-  return new Request(origin + "/__cache/availability-v1?date=" + encodeURIComponent(date) + "&ids=" + encodeURIComponent(ids.join(",")), {
+  return new Request(origin + "/__cache/facility-availability-v1?date=" + encodeURIComponent(date) + "&id=" + encodeURIComponent(facilityId), {
     method: "GET"
   });
 }
 
 async function handleFacilities(request, ctx, origin) {
   try {
-    const { payload, cacheStatus } = await loadFacilities(request.url, ctx);
+    const [facilitySource, metadataSource] = await Promise.all([
+      loadFacilities(request.url, ctx),
+      loadFacilityMetadata(ctx)
+    ]);
+    const metadataById = new Map(metadataSource.payload.facilities.map((facility) => [facility.id, facility]));
+    const payload = {
+      ...facilitySource.payload,
+      facilities: facilitySource.payload.facilities.map((facility) => ({
+        ...facility,
+        ...metadataById.get(facility.id)
+      }))
+    };
+    const cacheStatus = facilitySource.cacheStatus === "HIT" && metadataSource.cacheStatus === "HIT"
+      ? "HIT"
+      : "MISS";
     const response = jsonResponse(payload, 200, {
       "Cache-Control": "public, max-age=3600, s-maxage=" + FACILITY_CACHE_SECONDS
     });
@@ -362,11 +483,6 @@ async function handleAvailability(request, ctx, origin) {
     return withCors(errorResponse("INVALID_FACILITIES", "시설 ID 형식이 올바르지 않습니다.", 400), origin);
   }
 
-  const cacheKey = canonicalAvailabilityCacheKey(request.url, date, requestedIds);
-  const cache = caches.default;
-  const cached = await cache.match(cacheKey);
-  if (cached) return withCors(cached, origin, "HIT");
-
   let facilityPayload;
   try {
     facilityPayload = (await loadFacilities(request.url, ctx)).payload;
@@ -383,20 +499,67 @@ async function handleAvailability(request, ctx, origin) {
   const fetchedAt = new Date();
   const now = seoulDateParts(fetchedAt);
   const dayNo = dayNoForDate(date);
-  const results = await mapWithConcurrency(selected, UPSTREAM_CONCURRENCY, (facility) => {
-    return fetchFacilityAvailability(facility, date, dayNo, now);
+  const cache = caches.default;
+  const cachedEntries = await Promise.all(selected.map(async (facility) => {
+    const cacheKey = facilityAvailabilityCacheKey(request.url, date, facility.id);
+    const cached = await cache.match(cacheKey);
+    if (!cached) return { facility, cacheKey, entry: null };
+
+    try {
+      const entry = await cached.json();
+      if (!entry || entry.result?.id !== facility.id || !entry.fetchedAt || !entry.expiresAt) {
+        return { facility, cacheKey, entry: null };
+      }
+      return { facility, cacheKey, entry };
+    } catch {
+      return { facility, cacheKey, entry: null };
+    }
+  }));
+
+  const missingEntries = cachedEntries.filter(({ entry }) => !entry);
+  const freshEntries = await mapWithConcurrency(missingEntries, UPSTREAM_CONCURRENCY, async ({ facility, cacheKey }) => {
+    const result = await fetchFacilityAvailability(facility, date, dayNo, now);
+    const entry = {
+      fetchedAt: fetchedAt.toISOString(),
+      expiresAt: new Date(fetchedAt.getTime() + AVAILABILITY_CACHE_SECONDS * 1000).toISOString(),
+      result
+    };
+    return { facility, cacheKey, entry };
   });
+
+  if (freshEntries.length > 0) {
+    ctx.waitUntil(Promise.all(freshEntries.map(({ cacheKey, entry }) => {
+      const cacheResponse = jsonResponse(entry, 200, {
+        "Cache-Control": "public, max-age=0, s-maxage=" + AVAILABILITY_CACHE_SECONDS
+      });
+      return cache.put(cacheKey, cacheResponse);
+    })));
+  }
+
+  const freshEntriesById = new Map(freshEntries.map(({ facility, entry }) => [facility.id, entry]));
+  const entries = cachedEntries.map(({ facility, entry }) => entry || freshEntriesById.get(facility.id));
+  const oldestFetchedAt = entries.reduce((oldest, entry) => (
+    entry.fetchedAt < oldest ? entry.fetchedAt : oldest
+  ), entries[0].fetchedAt);
+  const earliestExpiresAt = entries.reduce((earliest, entry) => (
+    entry.expiresAt < earliest ? entry.expiresAt : earliest
+  ), entries[0].expiresAt);
+  const cacheHitCount = cachedEntries.length - missingEntries.length;
+  const cacheStatus = cacheHitCount === cachedEntries.length
+    ? "HIT"
+    : cacheHitCount === 0
+      ? "MISS"
+      : "PARTIAL";
   const payload = {
     date,
-    fetchedAt: fetchedAt.toISOString(),
-    expiresAt: new Date(fetchedAt.getTime() + AVAILABILITY_CACHE_SECONDS * 1000).toISOString(),
-    results
+    fetchedAt: oldestFetchedAt,
+    expiresAt: earliestExpiresAt,
+    results: entries.map((entry) => entry.result)
   };
   const response = jsonResponse(payload, 200, {
     "Cache-Control": "public, max-age=60, s-maxage=" + AVAILABILITY_CACHE_SECONDS
   });
-  ctx.waitUntil(cache.put(cacheKey, response.clone()));
-  return withCors(response, origin, "MISS");
+  return withCors(response, origin, cacheStatus);
 }
 
 export default {
@@ -415,12 +578,14 @@ export default {
         "Cache-Control": "no-store"
       }), origin);
     }
-    if (url.pathname === "/api/facilities") return handleFacilities(request, ctx, origin);
+    if (url.pathname === "/api/facilities" || url.pathname === "/api/v2/facilities") {
+      return handleFacilities(request, ctx, origin);
+    }
     if (url.pathname === "/api/availability") return handleAvailability(request, ctx, origin);
 
     return jsonResponse({
       name: "서울형 키즈카페 빈자리 조회 API",
-      endpoints: ["/api/health", "/api/facilities", "/api/availability?date=YYYY-MM-DD&ids=FACILITY_ID"]
+      endpoints: ["/api/health", "/api/v2/facilities", "/api/availability?date=YYYY-MM-DD&ids=FACILITY_ID"]
     });
   }
 };
@@ -428,5 +593,6 @@ export default {
 export {
   dayNoForDate,
   normalizeSession,
-  parseFacilities
+  parseFacilities,
+  parseFacilityMetadataPage
 };
