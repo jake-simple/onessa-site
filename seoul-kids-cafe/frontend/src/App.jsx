@@ -51,12 +51,6 @@ const RESULT_ACTION_LINK_STYLE = {
   whiteSpace: "nowrap",
   width: "100%"
 };
-const RESULT_PRIMARY_ACTION_LINK_STYLE = {
-  ...RESULT_ACTION_LINK_STYLE,
-  backgroundColor: "var(--color-accent)",
-  borderColor: "var(--color-accent)",
-  color: "var(--color-on-accent)"
-};
 const RESULT_ICON_ACTION_LINK_STYLE = {
   ...RESULT_ACTION_LINK_STYLE,
   height: "var(--size-element-md)",
@@ -350,7 +344,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       isStandalone
                       aria-label="공식 사이트 예약 (새 창에서 열림)"
                       color="inherit"
-                      style={RESULT_PRIMARY_ACTION_LINK_STYLE}
+                      style={RESULT_ACTION_LINK_STYLE}
                     >
                       공식 사이트 예약
                     </Link>
