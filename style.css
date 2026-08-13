@@ -312,6 +312,27 @@ a {
 }
 
 .principle {
+  position: relative;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.principle::after {
+  position: absolute;
+  top: -44%;
+  right: -17%;
+  width: min(66vw, 980px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(11, 11, 12, 0.08);
+  border-radius: 50%;
+  content: "";
+  pointer-events: none;
+}
+
+.principle-inner {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: 28% 1fr;
   gap: 5vw;
@@ -336,6 +357,10 @@ a {
   max-width: 950px;
 }
 
+.principle .eyebrow {
+  color: #6c6963;
+}
+
 .principle h2,
 .work-heading h2 {
   margin-top: 28px;
@@ -350,7 +375,7 @@ a {
   max-width: 720px;
   margin-top: 64px;
   margin-left: 18%;
-  color: #a6a299;
+  color: #706d66;
   font-family: var(--serif);
   font-size: clamp(21px, 2.1vw, 32px);
   line-height: 1.38;
@@ -855,11 +880,11 @@ html[data-lang="ko"] .closing h2 {
   .face {
     width: calc(100% - 40px);
   }
-  .principle,
+  .principle-inner,
   .work-heading {
     grid-template-columns: 1fr;
   }
-  .principle {
+  .principle-inner {
     gap: 72px;
     padding-top: 116px;
     padding-bottom: 124px;
