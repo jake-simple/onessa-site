@@ -972,8 +972,9 @@ html[data-lang="ko"] .closing h2 {
   }
   .footer-wordmark {
     margin-top: 100px;
-    font-size: 34vw;
+    font-size: min(34vw, calc(31.25vw - 12.5px));
     line-height: 0.72;
+    white-space: nowrap;
   }
   .footer-bottom { margin-top: 54px; }
 }
