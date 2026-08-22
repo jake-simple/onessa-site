@@ -54,6 +54,10 @@
   width: calc(var(--spacing-12) * 3);
 }
 
+.kids-cafe-result-item__tags {
+  padding-block-end: var(--spacing-1);
+}
+
 .kids-cafe-result-thumbnail__placeholder {
   background-color: var(--color-background-muted);
 }

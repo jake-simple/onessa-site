@@ -2,11 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import availabilityWorker, {
   dayNoForDate,
+  mergeParkingData,
   normalizeSession,
   parseFacilities,
   parseFacilityMetadataPage,
   refreshStartedSessions
 } from "./worker.js";
+import { PARKING_BY_FACILITY } from "./parking-data.js";
+
+const PARKING_STATUSES = new Set(["available", "limited", "unavailable"]);
 
 test("공식 시설 선택 목록을 내부 시설 모델로 바꾼다", () => {
   const html = `
@@ -62,6 +66,25 @@ test("공식 안내 목록에서 고정 정원과 주소, 썸네일을 읽는다
     thumbnailUrl: "https://umppa.seoul.go.kr/icare/upload/facility.jpg",
     capacity: { individual: 24, group: 20 }
   }]);
+});
+
+test("정리해 둔 주차 표는 정해진 상태와 근거 문장만 담는다", () => {
+  for (const [facilityId, parking] of Object.entries(PARKING_BY_FACILITY)) {
+    assert.match(facilityId, /^[A-Z]{2}\d{6}$/, `${facilityId}: 시설 ID 형식`);
+    assert.ok(PARKING_STATUSES.has(parking.status), `${facilityId}: 알 수 없는 상태 ${parking.status}`);
+    assert.equal(typeof parking.note, "string", `${facilityId}: 근거 문장이 없습니다`);
+    assert.ok(parking.note.includes("주차"), `${facilityId}: 근거 문장에 주차 안내가 없습니다`);
+  }
+});
+
+test("정리해 둔 주차 표를 시설 정보에 붙인다", () => {
+  const facilities = [{ id: "GN0001", name: "강남점" }, { id: "GD0001", name: "강동점" }];
+  const parkingById = { GN0001: { status: "available", note: "주차 가능(건물 지하주차장 이용)" } };
+
+  assert.deepEqual(mergeParkingData(facilities, parkingById), [
+    { id: "GN0001", name: "강남점", parking: { status: "available", note: "주차 가능(건물 지하주차장 이용)" } },
+    { id: "GD0001", name: "강동점" }
+  ]);
 });
 
 test("정원과 예약 인원으로 남은 자리를 계산한다", () => {
@@ -129,6 +152,62 @@ test("캐시된 오늘 회차도 현재 시작 시각을 다시 반영한다", (
 
   assert.equal(refreshed.sessions[0].status, "ended");
   assert.equal(refreshed.sessions[1].status, "available");
+});
+
+test("시설 목록 응답은 안내문을 다시 읽지 않고 주차 표만 붙인다", async (t) => {
+  const previousCaches = globalThis.caches;
+  const previousFetch = globalThis.fetch;
+  const cacheStore = new Map();
+  const facilities = [
+    { id: "GN0001", name: "강남점", district: "강남구", officialReservationUrl: "https://example.com/GN0001" },
+    { id: "GD0001", name: "강동점", district: "강동구", officialReservationUrl: "https://example.com/GD0001" }
+  ];
+
+  t.after(() => {
+    if (previousCaches === undefined) delete globalThis.caches;
+    else globalThis.caches = previousCaches;
+    globalThis.fetch = previousFetch;
+  });
+
+  globalThis.caches = {
+    default: {
+      async match(request) {
+        const response = cacheStore.get(request.url);
+        return response ? response.clone() : undefined;
+      },
+      async put(request, response) {
+        cacheStore.set(request.url, response.clone());
+      }
+    }
+  };
+  await globalThis.caches.default.put(
+    new Request("https://cache.internal/__cache/facilities-v2"),
+    Response.json({ facilities, districts: ["강남구", "강동구"] })
+  );
+  await globalThis.caches.default.put(
+    new Request("https://cache.internal/__cache/facility-metadata-v1"),
+    Response.json({ facilities: [{ id: "GN0001", address: "서울특별시 강남구", thumbnailUrl: "", capacity: {} }] })
+  );
+
+  globalThis.fetch = async (url) => {
+    throw new Error("시설 목록 응답에서 예상하지 못한 외부 요청: " + url);
+  };
+
+  const pending = [];
+  const response = await availabilityWorker.fetch(
+    new Request("https://api.example.com/api/v2/facilities"),
+    {},
+    { waitUntil: (promise) => pending.push(promise) }
+  );
+  await Promise.all(pending);
+  assert.equal(response.status, 200);
+
+  const payload = await response.json();
+  assert.equal(payload.facilities.length, 2);
+  assert.equal(payload.facilities[0].address, "서울특별시 강남구");
+  for (const facility of payload.facilities) {
+    assert.deepEqual(facility.parking, PARKING_BY_FACILITY[facility.id]);
+  }
 });
 
 test("시설별 캐시는 서로 다른 검색 조합에서도 재사용한다", async (t) => {

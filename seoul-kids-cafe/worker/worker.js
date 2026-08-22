@@ -1,3 +1,5 @@
+import { PARKING_BY_FACILITY } from "./parking-data.js";
+
 const SOURCE_ORIGIN = "https://umppa.seoul.go.kr";
 const FACILITY_LIST_ENDPOINT = SOURCE_ORIGIN + "/icare/user/kidsCafe/BD_selectKidsCafeList.do";
 const FACILITY_LIST_STYLES = ["2001", "2002"];
@@ -46,6 +48,14 @@ const DISTRICT_BY_PREFIX = {
   JG: "중구",
   JR: "중랑구"
 };
+
+// 주차 여부는 공식 이용안내를 사람이 읽고 parking-data.js에 정리해 둔 값을 그대로 붙인다.
+function mergeParkingData(facilities, parkingById = PARKING_BY_FACILITY) {
+  return facilities.map((facility) => {
+    const parking = parkingById[facility.id];
+    return parking ? { ...facility, parking } : facility;
+  });
+}
 
 function jsonResponse(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
@@ -466,10 +476,10 @@ async function handleFacilities(request, ctx, origin) {
     const metadataById = new Map(metadataSource.payload.facilities.map((facility) => [facility.id, facility]));
     const payload = {
       ...facilitySource.payload,
-      facilities: facilitySource.payload.facilities.map((facility) => ({
+      facilities: mergeParkingData(facilitySource.payload.facilities.map((facility) => ({
         ...facility,
         ...metadataById.get(facility.id)
-      }))
+      })))
     };
     const cacheStatus = facilitySource.cacheStatus === "HIT" && metadataSource.cacheStatus === "HIT"
       ? "HIT"
@@ -607,6 +617,7 @@ export default {
 
 export {
   dayNoForDate,
+  mergeParkingData,
   normalizeSession,
   parseFacilities,
   parseFacilityMetadataPage,

@@ -17,6 +17,7 @@ import {Section} from "@astryxdesign/core/Section";
 import {Spinner} from "@astryxdesign/core/Spinner";
 import {HStack, VStack} from "@astryxdesign/core/Stack";
 import {Text} from "@astryxdesign/core/Text";
+import {Token} from "@astryxdesign/core/Token";
 import {Theme} from "@astryxdesign/core/theme";
 import {ToggleButton} from "@astryxdesign/core/ToggleButton";
 import {neutralTheme} from "@astryxdesign/theme-neutral/built";
@@ -36,6 +37,11 @@ const FAVORITES_STORAGE_KEY = "kidsCafeFavoritesV1";
 const KOREAN_WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const OFFICIAL_FACILITY_GUIDE_BASE = "https://umppa.seoul.go.kr/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const NAVER_MAP_SEARCH_BASE = "https://map.naver.com/p/search";
+const PARKING_TAGS = {
+  available: {label: "주차 가능", color: "green"},
+  limited: {label: "주차 협소", color: "orange"},
+  unavailable: {label: "주차 불가", color: "red"}
+};
 const RESULT_ACTION_LINK_STYLE = {
   alignItems: "center",
   backgroundColor: "var(--color-background-surface)",
@@ -203,6 +209,17 @@ function matchingSessions(result, requiredSeats, searchDate, now) {
   )).sort((a, b) => sessionSortValue(a).localeCompare(sessionSortValue(b)));
 }
 
+function parkingTag(parking) {
+  const tag = PARKING_TAGS[parking?.status];
+  if (!tag) return null;
+  return {
+    ...tag,
+    description: parking.note
+      ? `공식 이용 안내 · ${parking.note}`
+      : `공식 이용 안내 기준 ${tag.label}`
+  };
+}
+
 function facilityCapacityText(capacity) {
   const labels = [];
   if (Number.isFinite(capacity?.individual)) labels.push(`개인 ${capacity.individual}명`);
@@ -250,6 +267,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
       <List hasDividers density="spacious" header={<Heading level={2}>예약 가능한 시설</Heading>}>
         {visibleEntries.map(({result, sessions}) => {
           const capacityText = facilityCapacityText(result.capacity);
+          const parking = parkingTag(result.parking);
           return (
             <ListItem
               key={result.id}
@@ -295,6 +313,16 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
               description={
                 <VStack gap={3}>
                   <VStack gap={1}>
+                    {parking && (
+                      <HStack className="kids-cafe-result-item__tags" wrap="wrap" gap={1.5}>
+                        <Token
+                          label={parking.label}
+                          color={parking.color}
+                          size="sm"
+                          description={parking.description}
+                        />
+                      </HStack>
+                    )}
                     {capacityText && (
                       <Text type="label" hasTabularNumbers>
                         이용 정원 · {capacityText}
