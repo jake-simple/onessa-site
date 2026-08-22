@@ -1,3 +1,5 @@
+import { PARKING_BY_FACILITY } from "./parking-data.js";
+
 const SOURCE_ORIGIN = "https://umppa.seoul.go.kr";
 const FACILITY_LIST_ENDPOINT = SOURCE_ORIGIN + "/icare/user/kidsCafe/BD_selectKidsCafeList.do";
 const FACILITY_LIST_STYLES = ["2001", "2002"];
@@ -5,13 +7,9 @@ const FACILITY_PAGES = ["SC251201", "SD240701"].map((facilityId) => {
   return SOURCE_ORIGIN + "/icare/user/kidsCafeResve/BD_selectKidsCafeResveCal.do?q_fcltyId=" + facilityId + "&q_fcltyStle=";
 });
 const AVAILABILITY_ENDPOINT = SOURCE_ORIGIN + "/icare/user/kidsCafeResve/ND_selectResveTmeList.do";
-const FACILITY_GUIDE_ENDPOINT = SOURCE_ORIGIN + "/icare/user/kidsCafe/BD_selectKidsCafeView.do";
 const FACILITY_CACHE_SECONDS = 86400;
 const AVAILABILITY_CACHE_SECONDS = 120;
-const PARKING_CACHE_SECONDS = 604800;
 const MAX_FACILITIES_PER_REQUEST = 24;
-const MAX_PARKING_FETCHES_PER_REQUEST = 40;
-const PARKING_NOTE_MAX_LENGTH = 120;
 const UPSTREAM_CONCURRENCY = 6;
 const UPSTREAM_TIMEOUT_MS = 9000;
 const FACILITY_TIMEOUT_MS = 15000;
@@ -51,24 +49,13 @@ const DISTRICT_BY_PREFIX = {
   JR: "중랑구"
 };
 
-const PARKING_FREE_ONLY_NEGATION = /(?:무료|할인|감면)\s*주차[^,.]{0,8}?(?:불가능|불가|안\s*됨|안\s*됩니다)/g;
-const PARKING_UNAVAILABLE_PATTERNS = [
-  /주차\s*(?:장|공간|시설|구역|자리|면)?\s*(?:은|는|이|가)?\s*(?:없|불가능|불가|미제공|미지원|제공(?:하지|되지)\s*않|지원(?:하지|되지)\s*않)/,
-  /주차\s*(?:장|공간)?\s*(?:이용)?\s*(?:불가능|불가)/
-];
-const PARKING_LIMITED_PATTERNS = [
-  /주차\s*(?:장|공간|시설|구역|자리|면)?\s*(?:은|는|이|가)?\s*(?:협소|부족|여의치\s*않|어렵|어려우|제한)/,
-  /주차\s*(?:장|공간)?\s*(?:이용)?\s*제한/
-];
-const PARKING_AVAILABLE_PATTERNS = [
-  /주차\s*(?:장|공간|시설|구역)?\s*(?:은|는|이|가|를|을)?\s*(?:이용\s*)?(?:가능|하실\s*수\s*있|할\s*수\s*있)/,
-  /(?:지하|지상|부설|공영|건물|인근|전용|자체)\s*주차장/,
-  /주차장\s*(?:이용|운영|있|완비|보유)/,
-  /주차\s*(?:요금|비|권|정산|지원|무료)/,
-  /무료\s*주차/
-];
-
-const PARKING_STATUS_PRIORITY = ["unavailable", "limited", "available"];
+// 주차 여부는 공식 이용안내를 사람이 읽고 parking-data.js에 정리해 둔 값을 그대로 붙인다.
+function mergeParkingData(facilities, parkingById = PARKING_BY_FACILITY) {
+  return facilities.map((facility) => {
+    const parking = parkingById[facility.id];
+    return parking ? { ...facility, parking } : facility;
+  });
+}
 
 function jsonResponse(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
@@ -204,49 +191,6 @@ function parseFacilityMetadataPage(html) {
   return {
     facilities,
     pageCount: lastPageMatch ? Number(lastPageMatch[1]) : 1
-  };
-}
-
-function guideTextLines(html) {
-  const withBreaks = String(html)
-    .replace(/<(script|style|head|nav|header|footer)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, " ")
-    .replace(/<\s*br\s*\/?\s*>/gi, "\n")
-    .replace(/<\/\s*(?:p|li|dd|dt|div|td|th|tr|h[1-6]|section|article)\s*>/gi, "\n");
-
-  return decodeHtml(withBreaks.replace(/<[^>]*>/g, " "))
-    .split("\n")
-    .flatMap((line) => line.split(/(?<=다\.)\s+/))
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-}
-
-function truncateNote(value) {
-  const note = value.trim();
-  if (note.length <= PARKING_NOTE_MAX_LENGTH) return note;
-  return note.slice(0, PARKING_NOTE_MAX_LENGTH - 1).trim() + "…";
-}
-
-function classifyParkingLine(line) {
-  // "무료 주차 불가"는 요금 안내일 뿐 주차 자체가 불가능하다는 뜻이 아니다.
-  const withoutFreeOnlyNegation = line.replace(PARKING_FREE_ONLY_NEGATION, " ");
-  if (PARKING_UNAVAILABLE_PATTERNS.some((pattern) => pattern.test(withoutFreeOnlyNegation))) return "unavailable";
-  if (PARKING_LIMITED_PATTERNS.some((pattern) => pattern.test(withoutFreeOnlyNegation))) return "limited";
-  if (PARKING_AVAILABLE_PATTERNS.some((pattern) => pattern.test(line))) return "available";
-  return "unknown";
-}
-
-function parseFacilityParking(html) {
-  const lines = guideTextLines(html)
-    .filter((line) => line.includes("주차"))
-    .map((line) => ({ line, status: classifyParkingLine(line) }));
-  const status = PARKING_STATUS_PRIORITY.find((candidate) => (
-    lines.some((entry) => entry.status === candidate)
-  )) || "unknown";
-  const source = lines.find((entry) => entry.status === status) || lines[0];
-
-  return {
-    status,
-    note: source ? truncateNote(source.line) : ""
   };
 }
 
@@ -516,69 +460,6 @@ async function loadFacilityMetadata(ctx) {
   return { payload, cacheStatus: "MISS" };
 }
 
-function facilityParkingCacheKey(requestUrl, facilityId) {
-  const origin = new URL(requestUrl).origin;
-  return new Request(origin + "/__cache/facility-parking-v1?id=" + encodeURIComponent(facilityId), {
-    method: "GET"
-  });
-}
-
-async function fetchFacilityParking(facilityId) {
-  const url = FACILITY_GUIDE_ENDPOINT + "?q_fcltyId=" + encodeURIComponent(facilityId) + "&q_fcltyStle=";
-
-  try {
-    const response = await fetchWithTimeout(url, {
-      method: "GET",
-      headers: {
-        "Accept": "text/html,application/xhtml+xml",
-        "Accept-Language": "ko-KR,ko;q=0.9"
-      }
-    }, FACILITY_TIMEOUT_MS);
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    return parseFacilityParking(await response.text());
-  } catch (error) {
-    // 안내문을 읽지 못한 시설은 태그 없이 보여 주고 다음 요청에서 다시 시도한다.
-    return null;
-  }
-}
-
-async function loadFacilityParking(requestUrl, ctx, facilities) {
-  const cache = caches.default;
-  const cachedEntries = await Promise.all(facilities.map(async (facility) => {
-    const cacheKey = facilityParkingCacheKey(requestUrl, facility.id);
-    const cached = await cache.match(cacheKey);
-    if (!cached) return { facility, cacheKey, parking: null };
-
-    try {
-      const parking = await cached.json();
-      return { facility, cacheKey, parking: parking && parking.status ? parking : null };
-    } catch {
-      return { facility, cacheKey, parking: null };
-    }
-  }));
-
-  // 안내문은 거의 바뀌지 않으므로 한 요청에서 일부만 채우고 나머지는 다음 요청에서 채운다.
-  const missingEntries = cachedEntries
-    .filter(({ parking }) => !parking)
-    .slice(0, MAX_PARKING_FETCHES_PER_REQUEST);
-  const freshEntries = await mapWithConcurrency(missingEntries, UPSTREAM_CONCURRENCY, async ({ facility, cacheKey }) => ({
-    facility,
-    cacheKey,
-    parking: await fetchFacilityParking(facility.id)
-  }));
-  const storableEntries = freshEntries.filter(({ parking }) => parking);
-
-  if (storableEntries.length > 0) {
-    ctx.waitUntil(Promise.all(storableEntries.map(({ cacheKey, parking }) => cache.put(cacheKey, jsonResponse(parking, 200, {
-      "Cache-Control": "public, max-age=0, s-maxage=" + PARKING_CACHE_SECONDS
-    })))));
-  }
-
-  return new Map([...cachedEntries, ...freshEntries]
-    .filter(({ parking }) => parking)
-    .map(({ facility, parking }) => [facility.id, parking]));
-}
-
 function facilityAvailabilityCacheKey(requestUrl, date, facilityId) {
   const origin = new URL(requestUrl).origin;
   return new Request(origin + "/__cache/facility-availability-v1?date=" + encodeURIComponent(date) + "&id=" + encodeURIComponent(facilityId), {
@@ -593,15 +474,12 @@ async function handleFacilities(request, ctx, origin) {
       loadFacilityMetadata(ctx)
     ]);
     const metadataById = new Map(metadataSource.payload.facilities.map((facility) => [facility.id, facility]));
-    const parkingById = await loadFacilityParking(request.url, ctx, facilitySource.payload.facilities)
-      .catch(() => new Map());
     const payload = {
       ...facilitySource.payload,
-      facilities: facilitySource.payload.facilities.map((facility) => ({
+      facilities: mergeParkingData(facilitySource.payload.facilities.map((facility) => ({
         ...facility,
-        ...metadataById.get(facility.id),
-        ...(parkingById.has(facility.id) ? { parking: parkingById.get(facility.id) } : {})
-      }))
+        ...metadataById.get(facility.id)
+      })))
     };
     const cacheStatus = facilitySource.cacheStatus === "HIT" && metadataSource.cacheStatus === "HIT"
       ? "HIT"
@@ -739,9 +617,9 @@ export default {
 
 export {
   dayNoForDate,
+  mergeParkingData,
   normalizeSession,
   parseFacilities,
   parseFacilityMetadataPage,
-  parseFacilityParking,
   refreshStartedSessions
 };
