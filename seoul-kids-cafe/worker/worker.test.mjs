@@ -5,6 +5,7 @@ import availabilityWorker, {
   normalizeSession,
   parseFacilities,
   parseFacilityMetadataPage,
+  parseFacilityParking,
   refreshStartedSessions
 } from "./worker.js";
 
@@ -62,6 +63,75 @@ test("공식 안내 목록에서 고정 정원과 주소, 썸네일을 읽는다
     thumbnailUrl: "https://umppa.seoul.go.kr/icare/upload/facility.jpg",
     capacity: { individual: 24, group: 20 }
   }]);
+});
+
+test("이용안내 문구에서 주차 가능 여부를 읽는다", () => {
+  const html = `
+    <div class="kidscafe_view">
+      <h4>이용안내</h4>
+      <ul>
+        <li>미끄럼 방지 양말을 반드시 착용해 주세요.</li>
+        <li>주차 가능(건물 지하주차장 이용), 최초 30분 무료 이후 30분당 1,000원</li>
+      </ul>
+    </div>`;
+
+  assert.deepEqual(parseFacilityParking(html), {
+    status: "available",
+    note: "주차 가능(건물 지하주차장 이용), 최초 30분 무료 이후 30분당 1,000원"
+  });
+});
+
+test("주차 공간이 없다는 안내는 주차 불가로 읽는다", () => {
+  const html = `<dl><dt>주차</dt><dd>별도의 주차공간이 없으니 대중교통을 이용해 주시기 바랍니다.</dd></dl>`;
+
+  assert.deepEqual(parseFacilityParking(html), {
+    status: "unavailable",
+    note: "별도의 주차공간이 없으니 대중교통을 이용해 주시기 바랍니다."
+  });
+});
+
+test("주차 공간이 협소하다는 안내는 주차 협소로 읽는다", () => {
+  const html = `<p>주차장이 협소하여 대중교통 이용을 권장합니다.</p>`;
+
+  assert.deepEqual(parseFacilityParking(html), {
+    status: "limited",
+    note: "주차장이 협소하여 대중교통 이용을 권장합니다."
+  });
+});
+
+test("무료 주차가 안 된다는 요금 안내를 주차 불가로 읽지 않는다", () => {
+  const html = `<p>평일 1시간 30분 무료, 이후 10분당 1,000원이며 주말 및 공휴일은 무료주차 불가입니다.</p>`;
+
+  assert.equal(parseFacilityParking(html).status, "available");
+});
+
+test("주차를 언급하지 않은 안내문은 상태를 단정하지 않는다", () => {
+  const html = `
+    <div>
+      <h4>이용안내</h4>
+      <p>개인 텀블러를 지참해 주세요.<br />일회용컵은 제공되지 않습니다.</p>
+    </div>`;
+
+  assert.deepEqual(parseFacilityParking(html), { status: "unknown", note: "" });
+});
+
+test("스크립트에 섞인 문구는 주차 안내로 읽지 않는다", () => {
+  const html = `<script>var label = "주차 불가";</script><dd>주차 가능합니다.</dd>`;
+
+  assert.equal(parseFacilityParking(html).status, "available");
+});
+
+test("주차 안내가 여러 줄이면 가장 보수적인 상태를 고른다", () => {
+  const html = `
+    <ul>
+      <li>인근 공영주차장을 이용하실 수 있습니다.</li>
+      <li>시설 자체 주차공간은 없습니다.</li>
+    </ul>`;
+
+  assert.deepEqual(parseFacilityParking(html), {
+    status: "unavailable",
+    note: "시설 자체 주차공간은 없습니다."
+  });
 });
 
 test("정원과 예약 인원으로 남은 자리를 계산한다", () => {
@@ -129,6 +199,77 @@ test("캐시된 오늘 회차도 현재 시작 시각을 다시 반영한다", (
 
   assert.equal(refreshed.sessions[0].status, "ended");
   assert.equal(refreshed.sessions[1].status, "available");
+});
+
+test("시설 목록에 안내문에서 읽은 주차 태그를 붙이고 캐시한다", async (t) => {
+  const previousCaches = globalThis.caches;
+  const previousFetch = globalThis.fetch;
+  const cacheStore = new Map();
+  const guideCalls = new Map();
+  const facilities = [
+    { id: "GN0001", name: "강남점", district: "강남구", officialReservationUrl: "https://example.com/GN0001" },
+    { id: "GD0001", name: "강동점", district: "강동구", officialReservationUrl: "https://example.com/GD0001" }
+  ];
+  const guideHtmlById = {
+    GN0001: "<dd>주차 가능(건물 지하주차장 이용)</dd>",
+    GD0001: "<dd>별도의 주차공간이 없으니 대중교통을 이용해 주세요.</dd>"
+  };
+
+  t.after(() => {
+    if (previousCaches === undefined) delete globalThis.caches;
+    else globalThis.caches = previousCaches;
+    globalThis.fetch = previousFetch;
+  });
+
+  globalThis.caches = {
+    default: {
+      async match(request) {
+        const response = cacheStore.get(request.url);
+        return response ? response.clone() : undefined;
+      },
+      async put(request, response) {
+        cacheStore.set(request.url, response.clone());
+      }
+    }
+  };
+  await globalThis.caches.default.put(
+    new Request("https://cache.internal/__cache/facilities-v2"),
+    Response.json({ facilities, districts: ["강남구", "강동구"] })
+  );
+  await globalThis.caches.default.put(
+    new Request("https://cache.internal/__cache/facility-metadata-v1"),
+    Response.json({ facilities: [{ id: "GN0001", address: "서울특별시 강남구", thumbnailUrl: "", capacity: {} }] })
+  );
+
+  globalThis.fetch = async (url) => {
+    const requestUrl = new URL(String(url));
+    assert.equal(requestUrl.pathname, "/icare/user/kidsCafe/BD_selectKidsCafeView.do");
+    const facilityId = requestUrl.searchParams.get("q_fcltyId");
+    guideCalls.set(facilityId, (guideCalls.get(facilityId) || 0) + 1);
+    return new Response(guideHtmlById[facilityId], { headers: { "Content-Type": "text/html" } });
+  };
+
+  async function requestFacilities() {
+    const pending = [];
+    const response = await availabilityWorker.fetch(
+      new Request("https://api.example.com/api/v2/facilities"),
+      {},
+      { waitUntil: (promise) => pending.push(promise) }
+    );
+    await Promise.all(pending);
+    assert.equal(response.status, 200);
+    return response.json();
+  }
+
+  const firstPayload = await requestFacilities();
+  const secondPayload = await requestFacilities();
+
+  assert.deepEqual(firstPayload.facilities.map((facility) => facility.parking), [
+    { status: "available", note: "주차 가능(건물 지하주차장 이용)" },
+    { status: "unavailable", note: "별도의 주차공간이 없으니 대중교통을 이용해 주세요." }
+  ]);
+  assert.deepEqual(secondPayload.facilities.map((facility) => facility.parking?.status), ["available", "unavailable"]);
+  assert.deepEqual(Object.fromEntries(guideCalls), { GN0001: 1, GD0001: 1 });
 });
 
 test("시설별 캐시는 서로 다른 검색 조합에서도 재사용한다", async (t) => {
