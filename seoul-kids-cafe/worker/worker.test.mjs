@@ -33,6 +33,26 @@ test("서울시 달력의 요일 번호는 일요일 1부터 시작한다", () =
   assert.equal(dayNoForDate("2026-08-15"), 7);
 });
 
+test("앱인토스 테스트·라이브 Origin에서 API를 호출할 수 있다", async () => {
+  const origins = [
+    "https://kids-cafe-finder.web.tossmini.com",
+    "https://kids-cafe-finder.private-web.tossmini.com",
+    "https://kids-cafe-finder.apps.tossmini.com",
+    "https://kids-cafe-finder.private-apps.tossmini.com"
+  ];
+
+  for (const origin of origins) {
+    const response = await availabilityWorker.fetch(
+      new Request("https://api.example.com/api/health", {headers: {Origin: origin}}),
+      {},
+      {}
+    );
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Access-Control-Allow-Origin"), origin);
+  }
+});
+
 test("공식 안내 목록에서 고정 정원과 주소, 썸네일을 읽는다", () => {
   const html = `
     <div class="kidscafe_wrap">

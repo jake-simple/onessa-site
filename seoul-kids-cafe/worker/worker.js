@@ -15,6 +15,10 @@ const FACILITY_TIMEOUT_MS = 15000;
 const ALLOWED_ORIGINS = new Set([
   "https://onessa.app",
   "https://www.onessa.app",
+  "https://kids-cafe-finder.web.tossmini.com",
+  "https://kids-cafe-finder.private-web.tossmini.com",
+  "https://kids-cafe-finder.apps.tossmini.com",
+  "https://kids-cafe-finder.private-apps.tossmini.com",
   "http://localhost:8000",
   "http://127.0.0.1:8000"
 ]);

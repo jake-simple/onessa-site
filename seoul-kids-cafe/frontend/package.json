@@ -7,9 +7,11 @@
     "dev": "vite --host 127.0.0.1",
     "test": "node --test image-cache-sw.test.mjs src/parking.test.mjs",
     "build": "vite build",
+    "build:toss": "vite build --config vite.config.toss.mjs && ait build",
     "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"
   },
   "dependencies": {
+    "@apps-in-toss/web-framework": "3.0.5",
     "@astryxdesign/core": "0.3.0",
     "@astryxdesign/theme-neutral": "0.3.0",
     "@stylexjs/stylex": "0.19.0",

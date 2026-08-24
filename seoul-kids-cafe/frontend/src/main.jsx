@@ -12,7 +12,14 @@ createRoot(document.getElementById("root")).render(
   </StrictMode>
 );
 
-if ("serviceWorker" in navigator) {
+const imageCacheHosts = new Set([
+  "onessa.app",
+  "www.onessa.app",
+  "localhost",
+  "127.0.0.1"
+]);
+
+if ("serviceWorker" in navigator && imageCacheHosts.has(location.hostname)) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/seoul-kids-cafe/image-cache-sw.js", {
       scope: "/seoul-kids-cafe/",
