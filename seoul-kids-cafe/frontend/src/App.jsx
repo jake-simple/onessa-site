@@ -19,8 +19,13 @@ import {HStack, VStack} from "@astryxdesign/core/Stack";
 import {Text} from "@astryxdesign/core/Text";
 import {Theme} from "@astryxdesign/core/theme";
 import {ToggleButton} from "@astryxdesign/core/ToggleButton";
+import {Token} from "@astryxdesign/core/Token";
 import {neutralTheme} from "@astryxdesign/theme-neutral/built";
-import {PARKING_DATA_REVIEWED_ON, parkingLabelForFacility} from "./parking.js";
+import {
+  PARKING_DATA_REVIEWED_ON,
+  parkingLabelForFacility,
+  parkingTokenColorForFacility
+} from "./parking.js";
 
 const API_BASE = document.documentElement.dataset.apiBase?.replace(/\/$/, "")
   || ((location.hostname === "localhost" || location.hostname === "127.0.0.1")
@@ -314,9 +319,15 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                         </Text>
                       </Link>
                     )}
-                    <Text type="supporting" color="secondary">
-                      {result.district} · {sessions.length}개 회차 · {parkingLabelForFacility(result.id)}
-                    </Text>
+                    <HStack gap={2} wrap="wrap" vAlign="center">
+                      <Text type="supporting" color="secondary">
+                        {result.district} · {sessions.length}개 회차
+                      </Text>
+                      <Token
+                        label={parkingLabelForFacility(result.id)}
+                        color={parkingTokenColorForFacility(result.id)}
+                      />
+                    </HStack>
                   </VStack>
                   <VStack gap={1.5}>
                     {sessions.map((session) => (

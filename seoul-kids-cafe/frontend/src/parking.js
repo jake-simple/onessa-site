@@ -9,6 +9,15 @@ export const PARKING_STATUS_LABELS = Object.freeze({
   unknown: "주차 정보 없음"
 });
 
+const PARKING_TOKEN_COLOR_BY_STATUS = Object.freeze({
+  available: "green",
+  limited: "orange",
+  "weekday-only": "orange",
+  nearby: "orange",
+  unavailable: "red",
+  unknown: "gray"
+});
+
 // 서울시 공식 시설 상세·오시는길 페이지를 시설별로 확인한 고정 판정값이다.
 export const PARKING_STATUS_BY_FACILITY = Object.freeze({
   DJ230901: "available",
@@ -176,4 +185,8 @@ export function parkingStatusForFacility(facilityId) {
 
 export function parkingLabelForFacility(facilityId) {
   return PARKING_STATUS_LABELS[parkingStatusForFacility(facilityId)];
+}
+
+export function parkingTokenColorForFacility(facilityId) {
+  return PARKING_TOKEN_COLOR_BY_STATUS[parkingStatusForFacility(facilityId)];
 }
