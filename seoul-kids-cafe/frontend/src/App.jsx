@@ -20,6 +20,7 @@ import {Text} from "@astryxdesign/core/Text";
 import {Theme} from "@astryxdesign/core/theme";
 import {ToggleButton} from "@astryxdesign/core/ToggleButton";
 import {neutralTheme} from "@astryxdesign/theme-neutral/built";
+import {PARKING_DATA_REVIEWED_ON, parkingLabelForFacility} from "./parking.js";
 
 const API_BASE = document.documentElement.dataset.apiBase?.replace(/\/$/, "")
   || ((location.hostname === "localhost" || location.hostname === "127.0.0.1")
@@ -314,7 +315,7 @@ function FacilityResults({entries, favoriteIds, onFavoriteChange}) {
                       </Link>
                     )}
                     <Text type="supporting" color="secondary">
-                      {result.district} · {sessions.length}개 회차
+                      {result.district} · {sessions.length}개 회차 · {parkingLabelForFacility(result.id)}
                     </Text>
                   </VStack>
                   <VStack gap={1.5}>
@@ -750,10 +751,17 @@ export default function App() {
                       )
                     )}
 
-                    {!isSearching && entries.length > 0 && failedCount === 0 && (
-                      <Text type="supporting">
-                        공식 사이트에서 최종 좌석을 확인한 뒤 예약해 주세요.
-                      </Text>
+                    {!isSearching && entries.length > 0 && (
+                      <VStack gap={1}>
+                        {failedCount === 0 && (
+                          <Text type="supporting">
+                            공식 사이트에서 최종 좌석을 확인한 뒤 예약해 주세요.
+                          </Text>
+                        )}
+                        <Text type="supporting" color="secondary">
+                          주차 정보는 {PARKING_DATA_REVIEWED_ON} 서울시 상세페이지를 기준으로 확인한 고정 정보입니다.
+                        </Text>
+                      </VStack>
                     )}
                   </VStack>
                 </Section>

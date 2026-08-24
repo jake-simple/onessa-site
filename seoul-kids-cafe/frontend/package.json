@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "test": "node --test image-cache-sw.test.mjs",
+    "test": "node --test image-cache-sw.test.mjs src/parking.test.mjs",
     "build": "vite build",
     "astryx": "node node_modules/@astryxdesign/cli/clients/cli/bin/astryx.mjs"
   },
