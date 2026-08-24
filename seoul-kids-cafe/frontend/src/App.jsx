@@ -21,6 +21,7 @@ import {Theme} from "@astryxdesign/core/theme";
 import {ToggleButton} from "@astryxdesign/core/ToggleButton";
 import {Token} from "@astryxdesign/core/Token";
 import {neutralTheme} from "@astryxdesign/theme-neutral/built";
+import TossBannerAd from "./TossBannerAd.jsx";
 import {
   PARKING_DATA_REVIEWED_ON,
   parkingLabelForFacility,
@@ -811,6 +812,7 @@ export default function App() {
             </VStack>
           </HStack>
         </AppShell>
+        <TossBannerAd />
       </InternationalizationProvider>
     </Theme>
   );

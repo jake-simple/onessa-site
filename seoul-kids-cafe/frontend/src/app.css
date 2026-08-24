@@ -82,6 +82,38 @@
   min-height: var(--size-element-lg);
 }
 
+.kids-cafe-toss-banner-spacer {
+  height: 0;
+}
+
+.kids-cafe-toss-banner-spacer--visible {
+  height: calc(96px + env(safe-area-inset-bottom, 0px));
+}
+
+.kids-cafe-toss-banner {
+  background-color: var(--color-background-surface);
+  bottom: 0;
+  box-shadow: 0 -1px 0 var(--color-border);
+  inset-inline: 0;
+  opacity: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  pointer-events: none;
+  position: fixed;
+  visibility: hidden;
+  z-index: 10;
+}
+
+.kids-cafe-toss-banner--visible {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+.kids-cafe-toss-banner__slot {
+  height: 96px;
+  width: 100%;
+}
+
 @media (max-width: 480px) {
   .kids-cafe-result-item {
     position: relative;
