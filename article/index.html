@@ -7,25 +7,21 @@ layout: null
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>문서 · Onessa</title>
 <meta name="description" content="읽고, 생각하고, 일상에 적용하는 문서를 모았습니다.">
-<style>
-*{box-sizing:border-box}body{margin:0;background:#fffefa;color:#3f535b;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;line-height:1.8}a{color:inherit;text-decoration:none}header{max-width:1000px;margin:auto;padding:28px 30px;display:flex;justify-content:space-between;font-size:12px;color:#64777c}header>a:first-child{font-family:"AppleMyungjo",Georgia,serif;font-size:18px}main{max-width:860px;padding:70px 30px 100px;margin:auto}.eyebrow{font-size:11px;letter-spacing:.14em;color:#987c51}h1{font-family:"AppleMyungjo","Batang",Georgia,serif;font-size:54px;font-weight:400;letter-spacing:-.04em;margin:12px 0 18px;color:#304c55}.intro{font-size:15px;color:#718087;margin:0 0 65px}.articles{list-style:none;padding:0;margin:0;border-top:1px solid #dcded5}.article{border-bottom:1px solid #e4e5dc}.article a{display:grid;grid-template-columns:50px 1fr 30px;gap:18px;padding:32px 0;align-items:center}.number{font-family:Georgia,serif;font-style:italic;font-size:15px;color:#a68c61}h2{font-family:"AppleMyungjo","Batang",Georgia,serif;font-size:25px;font-weight:400;margin:0;color:#425e67}.description{font-size:13px;color:#788990;margin:9px 0 0}.arrow{font-size:23px;color:#a5b2b3;transition:transform .2s}a:hover .arrow{transform:translateX(5px)}a:hover h2{color:#9a7946}a:focus-visible{outline:2px solid #a2b6bf;outline-offset:6px}footer{max-width:800px;margin:auto;padding:25px 30px;border-top:1px solid #e8e6dd;color:#8a9796;font-size:11px}@media(max-width:600px){header{padding:23px 25px}main{padding:45px 25px 75px}h1{font-size:43px}.intro{font-size:14px;margin-bottom:40px}.article a{grid-template-columns:25px 1fr 20px;gap:12px;padding:25px 0}h2{font-size:23px}.description{font-size:12px}}
-</style>
+<style>*{box-sizing:border-box}body{margin:0;background:#fffefa;color:#35464d;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;line-height:1.6}a{color:inherit;text-decoration:none}header{max-width:780px;margin:auto;padding:24px 28px 16px;font-size:14px;font-weight:600}main{max-width:780px;margin:auto;padding:20px 28px 64px}h1{font-size:22px;font-weight:600;margin:0 0 22px;letter-spacing:-.03em}.articles{list-style:none;margin:0;padding:0;border-top:1px solid #dfe3e3}.article{border-bottom:1px solid #e7e9e8}.article a{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:18px 0}.article-copy{min-width:0}h2{font-size:16px;font-weight:600;margin:0;color:#344c56;line-height:1.5}.description{font-size:13px;color:#75838a;margin:5px 0 0;line-height:1.6}.date{font-size:12px;white-space:nowrap;color:#7b888e;padding-top:3px;font-variant-numeric:tabular-nums}a:hover h2{color:#977849}a:focus-visible{outline:2px solid #9db1ba;outline-offset:4px}@media(max-width:600px){header{padding:20px 22px 12px}main{padding:16px 22px 50px}h1{font-size:21px;margin-bottom:18px}.article a{gap:10px;padding:16px 0}.description{font-size:12px}.date{font-size:11px}h2{font-size:15px}}</style>
 </head>
-<body><header><a href="/">Onessa</a><span>문서 모음</span></header>
-<main><div class="eyebrow">READ & REFLECT</div><h1>읽고, 생각하고.</h1><p class="intro">새로운 관점을 발견하고 일상에 적용하는 글을 모았습니다.</p>
-<ul class="articles">
-{% assign article_number = 0 %}
+<body><header><a href="/">Onessa</a></header><main><h1>문서</h1><ul class="articles">
+
 {% assign files = site.static_files | sort: 'path' %}
 {% for file in files %}
 {% assign relative_path = file.path | remove_first: '/article/' %}
 {% assign parts = relative_path | split: '/' %}
 {% if file.path contains '/article/' and file.name == 'index.html' and parts.size == 2 %}
-{% assign article_number = article_number | plus: 1 %}
+
 {% assign slug = parts.first %}
-<li class="article"><a href="{{ file.path | remove: 'index.html' | relative_url }}"><span class="number">{% if article_number < 10 %}0{% endif %}{{ article_number }}</span><div><h2>{% if slug == 'life-reading' %}인생 고치는 법{% else %}{{ slug | replace: '-', ' ' | escape }}{% endif %}</h2><p class="description">{% if slug == 'life-reading' %}정체성에서 오늘의 행동까지, 일곱 가지 관점과 하루의 성찰.{% else %}문서를 열어 읽어보세요.{% endif %}</p></div><span class="arrow" aria-hidden="true">↗</span></a></li>
+<li class="article"><a href="{{ file.path | remove: 'index.html' | relative_url }}"><div class="article-copy"><h2>{% if slug == 'life-reading' %}인생 고치는 법{% else %}{{ slug | replace: '-', ' ' | escape }}{% endif %}</h2><p class="description">{% if slug == 'life-reading' %}정체성에서 오늘의 행동까지, 일곱 가지 관점과 하루의 성찰.{% else %}문서를 열어 읽어보세요.{% endif %}</p></div>{% if slug == 'life-reading' %}<time class="date" datetime="2026-11-03" aria-label="게시일 2026년 11월 3일">2026.11.03</time>{% endif %}</a></li>
 {% endif %}
 {% endfor %}
-</ul></main><footer>Onessa · Articles</footer>
+</ul></main>
 <script>
 // The directory listing is generated by GitHub Pages; titles are read from each document.
 for(const row of document.querySelectorAll('.article')){fetch(row.querySelector('a').href).then(r=>{if(!r.ok)throw Error(r.status);return r.text()}).then(text=>{const doc=new DOMParser().parseFromString(text,'text/html');const title=doc.title.split(' · ')[0].trim();if(title)row.querySelector('h2').textContent=title;const description=doc.querySelector('meta[name="description"]')?.content;if(description)row.querySelector('.description').textContent=description}).catch(()=>{});}
